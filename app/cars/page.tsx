@@ -367,47 +367,6 @@ function getStatusBadge(status: string) {
   }
 }
 
-// ─── Helper Functions ──────────────────────────────────────
-function getPageNumbers(table: any, apiPagination: any) {
-  const currentPage = apiPagination?.currentPage || 1;
-  const totalPages = apiPagination?.totalPages || 1;
-  const maxVisiblePages = 5;
-
-  if (totalPages <= maxVisiblePages) {
-    return Array.from({ length: totalPages }, (_, i) => i + 1);
-  }
-
-  const pages = [];
-  const halfVisible = Math.floor(maxVisiblePages / 2);
-
-  if (currentPage <= halfVisible + 1) {
-    // Show first pages
-    for (let i = 1; i <= maxVisiblePages - 1; i++) {
-      pages.push(i);
-    }
-    pages.push("...");
-    pages.push(totalPages);
-  } else if (currentPage >= totalPages - halfVisible) {
-    // Show last pages
-    pages.push(1);
-    pages.push("...");
-    for (let i = totalPages - (maxVisiblePages - 2); i <= totalPages; i++) {
-      pages.push(i);
-    }
-  } else {
-    // Show middle pages
-    pages.push(1);
-    pages.push("...");
-    for (let i = currentPage - 1; i <= currentPage + 1; i++) {
-      pages.push(i);
-    }
-    pages.push("...");
-    pages.push(totalPages);
-  }
-
-  return pages;
-}
-
 // ─── Main Page ────────────────────────────────────────────
 export default function CarsPage() {
   const dispatch = useAppDispatch();
@@ -2047,205 +2006,60 @@ export default function CarsPage() {
                         </div>
 
                         {/* Pagination */}
-                        <div
-                          className={cn(
-                            "flex",
-                            "flex-col",
-                            "gap-4",
-                            "sm:flex-row",
-                            "sm:items-center",
-                            "sm:justify-between",
-                            "mt-4",
-                          )}
-                        >
-                          <div
-                            className={cn(
-                              "flex",
-                              "items-center",
-                              "gap-4",
-                              "text-sm",
-                              "text-muted-foreground",
-                            )}
-                          >
-                            <span>
-                              Showing{" "}
-                              <span
-                                className={cn("font-medium", "text-foreground")}
-                              >
-                                {apiPagination
-                                  ? (apiPagination.currentPage - 1) *
-                                      apiPagination.limit +
-                                    1
-                                  : 0}
-                              </span>{" "}
-                              -
-                              <span
-                                className={cn("font-medium", "text-foreground")}
-                              >
-                                {apiPagination
-                                  ? Math.min(
-                                      apiPagination.currentPage *
-                                        apiPagination.limit,
-                                      apiPagination.totalCars,
-                                    )
-                                  : 0}
-                              </span>{" "}
-                              of{" "}
-                              <span
-                                className={cn("font-medium", "text-foreground")}
-                              >
-                                {apiPagination?.totalCars || 0}
-                              </span>{" "}
-                              results
-                            </span>
-                          </div>
-                          <div className={cn("flex", "items-center", "gap-6")}>
-                            <div
-                              className={cn("flex", "items-center", "gap-2")}
-                            >
-                              <Label
-                                htmlFor="rows-per-page"
-                                className={cn(
-                                  "text-sm",
-                                  "text-muted-foreground",
-                                  "whitespace-nowrap",
-                                )}
-                              >
-                                Rows per page
-                              </Label>
-                              <Select
-                                value={`${table.getState().pagination.pageSize}`}
-                                onValueChange={(value) =>
-                                  table.setPageSize(Number(value))
-                                }
-                              >
-                                <SelectTrigger
-                                  size="sm"
-                                  className={cn("w-[70px]", "h-8")}
-                                  id="rows-per-page"
-                                >
-                                  <SelectValue
-                                    placeholder={
-                                      table.getState().pagination.pageSize
-                                    }
-                                  />
-                                </SelectTrigger>
-                                <SelectContent side="top">
-                                  {[5, 10, 20, 30, 40, 50].map((ps) => (
-                                    <SelectItem key={ps} value={`${ps}`}>
-                                      {ps}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div
-                              className={cn("flex", "items-center", "gap-1")}
-                            >
-                              <span
-                                className={cn(
-                                  "text-sm",
-                                  "font-medium",
-                                  "whitespace-nowrap",
-                                )}
-                              >
-                                Page {apiPagination?.currentPage || 1} of{" "}
-                                {apiPagination?.totalPages || 1}
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="text-sm text-muted-foreground">
+                            Total: <span className="font-medium text-foreground">{apiPagination?.totalCars || 0}</span> results
+                            {selectedCount > 0 && (
+                              <span className="text-xs ml-2">
+                                ({selectedCount} selected)
                               </span>
-                            </div>
-                            <div
-                              className={cn("flex", "items-center", "gap-1")}
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => table.setPageIndex(0)}
+                              disabled={!apiPagination?.hasPrevPage}
                             >
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className={cn("h-8", "w-8")}
-                                onClick={() => table.setPageIndex(0)}
-                                disabled={!apiPagination?.hasPrevPage}
-                              >
-                                <span className="sr-only">First page</span>
-                                <IconChevronsLeft className="size-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className={cn("h-8", "w-8")}
-                                onClick={() => table.previousPage()}
-                                disabled={!apiPagination?.hasPrevPage}
-                              >
-                                <span className="sr-only">Previous page</span>
-                                <IconChevronLeft className="size-4" />
-                              </Button>
-
-                              {/* Page Numbers */}
-                              <div
-                                className={cn("flex", "items-center", "gap-1")}
-                              >
-                                {getPageNumbers(table, apiPagination).map(
-                                  (pageNum, index) => (
-                                    <React.Fragment key={index}>
-                                      {pageNum === "..." ? (
-                                        <span
-                                          className={cn(
-                                            "px-2",
-                                            "py-1",
-                                            "text-sm",
-                                            "text-muted-foreground",
-                                          )}
-                                        >
-                                          ...
-                                        </span>
-                                      ) : (
-                                        <Button
-                                          variant={
-                                            pageNum ===
-                                            (apiPagination?.currentPage || 1)
-                                              ? "default"
-                                              : "outline"
-                                          }
-                                          size="sm"
-                                          className={cn("h-8", "w-8", "p-0")}
-                                          onClick={() =>
-                                            table.setPageIndex(pageNum - 1)
-                                          }
-                                          disabled={
-                                            pageNum ===
-                                            (apiPagination?.currentPage || 1)
-                                          }
-                                        >
-                                          {pageNum}
-                                        </Button>
-                                      )}
-                                    </React.Fragment>
-                                  ),
-                                )}
-                              </div>
-
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className={cn("h-8", "w-8")}
-                                onClick={() => table.nextPage()}
-                                disabled={!apiPagination?.hasNextPage}
-                              >
-                                <span className="sr-only">Next page</span>
-                                <IconChevronRight className="size-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                className={cn("h-8", "w-8")}
-                                onClick={() =>
-                                  table.setPageIndex(
-                                    (apiPagination?.totalPages || 1) - 1,
-                                  )
-                                }
-                                disabled={!apiPagination?.hasNextPage}
-                              >
-                                <span className="sr-only">Last page</span>
-                                <IconChevronsRight className="size-4" />
-                              </Button>
-                            </div>
+                              <span className="sr-only">First page</span>
+                              <IconChevronsLeft className="size-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => table.previousPage()}
+                              disabled={!apiPagination?.hasPrevPage}
+                            >
+                              <span className="sr-only">Previous page</span>
+                              <IconChevronLeft className="size-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => table.nextPage()}
+                              disabled={!apiPagination?.hasNextPage}
+                            >
+                              <span className="sr-only">Next page</span>
+                              <IconChevronRight className="size-4" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() =>
+                                table.setPageIndex(
+                                  (apiPagination?.totalPages || 1) - 1,
+                                )
+                              }
+                              disabled={!apiPagination?.hasNextPage}
+                            >
+                              <span className="sr-only">Last page</span>
+                              <IconChevronsRight className="size-4" />
+                            </Button>
                           </div>
                         </div>
                       </>

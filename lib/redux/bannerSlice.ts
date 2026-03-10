@@ -16,8 +16,15 @@ export type Banner = {
   updatedAt: string
 }
 
+type BannerStatistics = {
+  totalBanners: number
+  activeBanners: number
+  inactiveBanners: number
+}
+
 type BannerState = {
   banners: Banner[]
+  statistics: BannerStatistics | null
   loading: boolean
   searching: boolean
   error: string | null
@@ -30,6 +37,7 @@ type BannerListResponse = {
   message: string
   data: {
     banners: Banner[]
+    statistics: BannerStatistics
   }
 }
 
@@ -47,8 +55,60 @@ const getAccessToken = () => Cookies.get("access_token") || null
 // ─── Async Thunks ────────────────────────────────────────
 
 /** GET /api/banners */
+export const fetchBannersWithFilter = createAsyncThunk<
+  { banners: Banner[]; statistics: BannerStatistics },
+  { isActive?: boolean },
+  { rejectValue: string }
+>("banner/fetchBannersWithFilter", async ({ isActive }, { getState, dispatch, rejectWithValue }) => {
+  try {
+    const state = getState() as { auth: { accessToken: string | null } }
+    let accessToken = state.auth.accessToken || getAccessToken()
+    
+    const url = new URL(BANNER_ENDPOINTS.LIST)
+    if (isActive !== undefined) url.searchParams.set("isActive", isActive.toString())
+    url.searchParams.set("sortBy", "displayOrder")
+    url.searchParams.set("sortOrder", "asc")
+    url.searchParams.set("page", "1")
+    url.searchParams.set("limit", "10")
+    
+    let res = await fetch(url.toString(), {
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+    })
+
+    if (res.status === 401) {
+      const refreshResult = await (dispatch as any)(refreshAccessToken())
+      if (refreshAccessToken.fulfilled.match(refreshResult)) {
+        accessToken = refreshResult.payload.accessToken
+        res = await fetch(url.toString(), {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+      } else {
+        return rejectWithValue("Session expired. Please log in again.")
+      }
+    }
+
+    const json: BannerListResponse = await res.json()
+    if (!res.ok || !json.success) {
+      return rejectWithValue(json.message ?? "Failed to fetch banners.")
+    }
+    return {
+      banners: json.data.banners,
+      statistics: json.data.statistics
+    }
+  } catch {
+    return rejectWithValue("Network error. Could not fetch banners.")
+  }
+})
+
+/** GET /api/banners */
 export const fetchBanners = createAsyncThunk<
-  Banner[],
+  { banners: Banner[]; statistics: BannerStatistics },
   void,
   { rejectValue: string }
 >("banner/fetchBanners", async (_, { getState, dispatch, rejectWithValue }) => {
@@ -82,7 +142,10 @@ export const fetchBanners = createAsyncThunk<
     if (!res.ok || !json.success) {
       return rejectWithValue(json.message ?? "Failed to fetch banners.")
     }
-    return json.data.banners
+    return {
+      banners: json.data.banners,
+      statistics: json.data.statistics
+    }
   } catch {
     return rejectWithValue("Network error. Could not fetch banners.")
   }
@@ -319,6 +382,7 @@ export const searchBanners = createAsyncThunk<
 // ─── Initial State ───────────────────────────────────────
 const initialState: BannerState = {
   banners: [],
+  statistics: null,
   loading: false,
   searching: false,
   error: null,
@@ -336,6 +400,22 @@ const bannerSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // fetchBannersWithFilter
+    builder
+      .addCase(fetchBannersWithFilter.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(fetchBannersWithFilter.fulfilled, (state, action) => {
+        state.loading = false
+        state.banners = action.payload.banners
+        state.statistics = action.payload.statistics
+      })
+      .addCase(fetchBannersWithFilter.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.payload ?? "Failed to fetch banners."
+      })
+
     // fetchBanners
     builder
       .addCase(fetchBanners.pending, (state) => {
@@ -344,7 +424,8 @@ const bannerSlice = createSlice({
       })
       .addCase(fetchBanners.fulfilled, (state, action) => {
         state.loading = false
-        state.banners = action.payload
+        state.banners = action.payload.banners
+        state.statistics = action.payload.statistics
       })
       .addCase(fetchBanners.rejected, (state, action) => {
         state.loading = false
@@ -375,9 +456,13 @@ const bannerSlice = createSlice({
       .addCase(updateBanner.fulfilled, (state, action) => {
         state.updating = false;
         if (!action.payload || !action.payload._id) return;
-        state.banners = state.banners.filter(b => b && b._id);
         const idx = state.banners.findIndex((b) => b._id === action.payload._id);
-        if (idx !== -1) state.banners[idx] = action.payload;
+        if (idx !== -1) {
+          state.banners[idx] = action.payload;
+        } else {
+          // If banner not found, add it to the beginning
+          state.banners.unshift(action.payload);
+        }
       })
       .addCase(updateBanner.rejected, (state, action) => {
         state.updating = false
