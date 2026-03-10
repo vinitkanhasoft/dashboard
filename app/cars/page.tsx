@@ -38,6 +38,7 @@ import {
   IconX,
   IconEye,
   IconEdit,
+  IconLoader,
 } from "@tabler/icons-react";
 import {
   flexRender,
@@ -405,9 +406,39 @@ export default function CarsPage() {
   const [viewDrawerOpen, setViewDrawerOpen] = React.useState(false);
   const [viewCar, setViewCar] = React.useState<Car | null>(null);
   const [viewLoading, setViewLoading] = React.useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = React.useState(0);
+  const [isImageTransitioning, setIsImageTransitioning] = React.useState(false);
+  const [imageDirection, setImageDirection] = React.useState<'left' | 'right'>('right');
 
   // Status tabs state
   const [activeStatusTab, setActiveStatusTab] = React.useState<string>("all");
+
+  // Helper function to get all images (primary + additional)
+  const getAllImages = React.useCallback((car: Car | null) => {
+    if (!car) return [];
+    const images = [];
+    if (car.primaryImage?.url) {
+      images.push({ ...car.primaryImage, isPrimary: true });
+    }
+    if (car.images && car.images.length > 0) {
+      images.push(...car.images.map(img => ({ ...img, isPrimary: false })));
+    }
+    return images;
+  }, []);
+
+  // Helper function to handle image change with animation
+  const handleImageChange = React.useCallback((newIndex: number, direction: 'left' | 'right') => {
+    const allImages = getAllImages(viewCar);
+    if (allImages.length <= 1) return;
+    
+    setIsImageTransitioning(true);
+    setImageDirection(direction);
+    
+    setTimeout(() => {
+      setSelectedImageIndex(newIndex);
+      setIsImageTransitioning(false);
+    }, 150);
+  }, [viewCar, getAllImages]);
 
   const sortableId = React.useId();
   const sensors = useSensors(
@@ -597,6 +628,7 @@ export default function CarsPage() {
   const handleOpenView = React.useCallback(
     async (car: Car) => {
       setViewCar(car);
+      setSelectedImageIndex(0); // Reset to first image
       setViewDrawerOpen(true);
       setViewLoading(true);
       const result = await dispatch(fetchCarById(car._id));
@@ -2237,47 +2269,150 @@ export default function CarsPage() {
                       </div>
                     </div>
 
-                    {/* Image Gallery */}
+                    {/* Image Gallery with Carousel */}
                     <div className="space-y-3">
                       <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between">
                         <span>Gallery</span>
                         <span className="text-gray-400">
-                          {viewCar.images?.length || 0} images
+                          {getAllImages(viewCar).length} images
                         </span>
                       </label>
 
-                      {/* Primary Image Highlight */}
-                      {viewCar.primaryImage?.url && (
-                        <div className="relative h-48 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group">
-                          <Image
-                            src={viewCar.primaryImage.url}
-                            alt={viewCar.primaryImage.alt || "Primary image"}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 768px) 100vw, 600px"
-                          />
-                          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                            Primary Image
+                      {/* Main Image Display with Animation */}
+                      {getAllImages(viewCar).length > 0 && (
+                        <div className="relative h-64 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group">
+                          {/* Image Container with Animation */}
+                          <div className="relative w-full h-full">
+                            {/* Current Image */}
+                            <div
+                              className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+                                isImageTransitioning
+                                  ? imageDirection === 'right'
+                                    ? 'opacity-0 transform translate-x-8'
+                                    : 'opacity-0 transform -translate-x-8'
+                                  : 'opacity-100 transform translate-x-0'
+                              }`}
+                            >
+                              <Image
+                                src={getAllImages(viewCar)[selectedImageIndex]?.url || ''}
+                                alt={getAllImages(viewCar)[selectedImageIndex]?.alt || `Image ${selectedImageIndex + 1}`}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 100vw, 600px"
+                              />
+                            </div>
+                            
+                            {/* Previous Image for Smooth Transition */}
+                            {isImageTransitioning && (
+                              <div
+                                className={`absolute inset-0 transition-all duration-300 ease-in-out ${
+                                  imageDirection === 'right'
+                                    ? 'opacity-50 transform -translate-x-4'
+                                    : 'opacity-50 transform translate-x-4'
+                                }`}
+                              >
+                                <Image
+                                  src={getAllImages(viewCar)[
+                                    imageDirection === 'right'
+                                      ? selectedImageIndex === 0 ? getAllImages(viewCar).length - 1 : selectedImageIndex - 1
+                                      : selectedImageIndex === getAllImages(viewCar).length - 1 ? 0 : selectedImageIndex + 1
+                                  ]?.url || ''}
+                                  alt="Previous image"
+                                  fill
+                                  className="object-cover"
+                                  sizes="(max-width: 768px) 100vw, 600px"
+                                />
+                              </div>
+                            )}
                           </div>
+                          
+                          {getAllImages(viewCar)[selectedImageIndex]?.isPrimary && (
+                            <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded z-10">
+                              Primary Image
+                            </div>
+                          )}
+                          
+                          {/* Navigation Arrows */}
+                          {getAllImages(viewCar).length > 1 && (
+                            <>
+                              <button
+                                onClick={() => {
+                                  const newIndex = selectedImageIndex === 0 ? getAllImages(viewCar).length - 1 : selectedImageIndex - 1;
+                                  handleImageChange(newIndex, 'left');
+                                }}
+                                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 transform hover:scale-110"
+                                disabled={isImageTransitioning}
+                              >
+                                <IconChevronLeft className="h-4 w-4" />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newIndex = selectedImageIndex === getAllImages(viewCar).length - 1 ? 0 : selectedImageIndex + 1;
+                                  handleImageChange(newIndex, 'right');
+                                }}
+                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 z-10 transform hover:scale-110"
+                                disabled={isImageTransitioning}
+                              >
+                                <IconChevronRight className="h-4 w-4" />
+                              </button>
+                            </>
+                          )}
+                          
+                          {/* Image Counter */}
+                          {getAllImages(viewCar).length > 1 && (
+                            <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded z-10">
+                              {selectedImageIndex + 1} / {getAllImages(viewCar).length}
+                            </div>
+                          )}
+                          
+                          {/* Loading Indicator */}
+                          {isImageTransitioning && (
+                            <div className="absolute top-2 right-2 z-10">
+                              <div className="bg-black/50 text-white p-1 rounded-full">
+                                <IconLoader className="h-3 w-3 animate-spin" />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Additional Images Grid */}
-                      {viewCar.images && viewCar.images.length > 0 && (
-                        <div className="grid grid-cols-4 gap-2">
-                          {viewCar.images.map((image, index) => (
-                            <div
+                      {/* Thumbnail Carousel */}
+                      {getAllImages(viewCar).length > 1 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {getAllImages(viewCar).map((image, index) => (
+                            <button
                               key={index}
-                              className="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-800 group"
+                              onClick={() => {
+                                if (index !== selectedImageIndex && !isImageTransitioning) {
+                                  const direction = index > selectedImageIndex ? 'right' : 'left';
+                                  handleImageChange(index, direction);
+                                }
+                              }}
+                              disabled={isImageTransitioning}
+                              className={`relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all duration-300 transform ${
+                                selectedImageIndex === index
+                                  ? 'border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800 scale-105 shadow-lg'
+                                  : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:scale-105'
+                              } ${
+                                isImageTransitioning ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                              }`}
                             >
                               <Image
                                 src={image.url}
-                                alt={image.alt || `Image ${index + 1}`}
+                                alt={image.alt || `Thumbnail ${index + 1}`}
                                 fill
-                                className="object-cover"
-                                sizes="(max-width: 768px) 25vw, 150px"
+                                className="object-cover transition-transform duration-300"
+                                sizes="80px"
                               />
-                            </div>
+                              {image.isPrimary && (
+                                <div className="absolute top-1 left-1 bg-blue-600 text-white text-xs px-1 py-0.5 rounded">
+                                  P
+                                </div>
+                              )}
+                              {selectedImageIndex === index && (
+                                <div className="absolute inset-0 bg-blue-500/20 pointer-events-none" />
+                              )}
+                            </button>
                           ))}
                         </div>
                       )}
