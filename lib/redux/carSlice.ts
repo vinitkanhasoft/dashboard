@@ -19,20 +19,23 @@ export type CarFeatureItem = {
 export type CarFeaturesData = {
   _id?: string
   carId?: string
-  features: CarFeatureItem[]
-  featuresList?: string[]
+  features: {
+    [key: string]: boolean
+  }
   createdAt?: string
   updatedAt?: string
+  id?: string
 }
 
 export type CarSpecificationsData = {
   _id?: string
   carId?: string
-  safetyFeatures?: string[]
-  comfortFeatures?: string[]
-  entertainmentFeatures?: string[]
+  specifications: {
+    [key: string]: boolean
+  }
   createdAt?: string
   updatedAt?: string
+  id?: string
 }
 
 export type Car = {
@@ -73,8 +76,8 @@ export type Car = {
   createdAt: string
   updatedAt: string
   discountPercentage?: number
-  features?: CarFeatureItem[]
-  specifications?: CarFeatureItem[]
+  features?: CarFeaturesData[]
+  specifications?: CarSpecificationsData[]
   reviews?: unknown[]
   similarCars?: unknown[]
 }
@@ -248,7 +251,7 @@ export const fetchCarById = createAsyncThunk<
     if (!res.ok || !json.success) {
       return rejectWithValue(json.message ?? "Failed to fetch car.")
     }
-    return json.data.car ?? json.data
+    return json.data.car
   } catch {
     return rejectWithValue("Network error. Could not fetch car.")
   }

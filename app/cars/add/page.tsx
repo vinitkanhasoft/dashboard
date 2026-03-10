@@ -444,46 +444,38 @@ export default function AddCarPage() {
 
 
 
-    // Parse features from API format: [{ name, available }]
-
+    // Parse features from API format: [{ features: { [key: string]: boolean } }]
     const parsedFeatures = { ...DEFAULT_FEATURES };
-
-    if (Array.isArray(car.features)) {
-
-      car.features.forEach((f) => {
-
-        if (f.name in parsedFeatures) {
-
-          parsedFeatures[f.name] = f.available;
-
-        }
-
-      });
-
+    
+    if (Array.isArray(car.features) && car.features.length > 0) {
+      const featuresData = car.features[0];
+      if (featuresData.features && typeof featuresData.features === 'object') {
+        Object.entries(featuresData.features).forEach(([featureName, isAvailable]) => {
+          if (featureName in parsedFeatures) {
+            parsedFeatures[featureName] = isAvailable;
+          }
+        });
+      }
     }
-
+    
     setFeatures(parsedFeatures);
 
 
 
-    // Parse specifications from API format: [{ name, available }]
-
+    // Parse specifications from API format: [{ specifications: { [key: string]: boolean } }]
     const parsedSpecs = { ...DEFAULT_SPECIFICATIONS };
-
-    if (Array.isArray(car.specifications)) {
-
-      car.specifications.forEach((s) => {
-
-        if (s.name in parsedSpecs) {
-
-          parsedSpecs[s.name] = s.available;
-
-        }
-
-      });
-
+    
+    if (Array.isArray(car.specifications) && car.specifications.length > 0) {
+      const specificationsData = car.specifications[0];
+      if (specificationsData.specifications && typeof specificationsData.specifications === 'object') {
+        Object.entries(specificationsData.specifications).forEach(([specName, isAvailable]) => {
+          if (specName in parsedSpecs) {
+            parsedSpecs[specName] = isAvailable;
+          }
+        });
+      }
     }
-
+    
     setSpecifications(parsedSpecs);
 
   }, [isEditMode, currentCar]);

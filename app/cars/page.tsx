@@ -2504,7 +2504,7 @@ export default function CarsPage() {
                       </div>
                     </div>
 
-                    {/* Features - Improved with better spacing and organization */}
+                    {/* Features - Updated for new API structure */}
                     {viewCar.features && viewCar.features.length > 0 && (
                       <div>
                         <div className="flex items-center justify-between mb-4">
@@ -2515,16 +2515,16 @@ export default function CarsPage() {
                             variant="outline"
                             className="text-xs bg-gray-100 dark:bg-gray-800"
                           >
-                            {viewCar.features.length} items
+                            {Object.keys(viewCar.features[0]?.features || {}).length} items
                           </Badge>
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                          {viewCar.features.map((feature, index) => (
+                          {Object.entries(viewCar.features[0]?.features || {}).map(([featureName, isAvailable]) => (
                             <div
-                              key={index}
+                              key={featureName}
                               className={cn(
                                 "flex items-center gap-2 p-2 rounded-md border text-sm",
-                                feature.available
+                                isAvailable
                                   ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
                                   : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60",
                               )}
@@ -2532,12 +2532,12 @@ export default function CarsPage() {
                               <div
                                 className={cn(
                                   "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
-                                  feature.available
+                                  isAvailable
                                     ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
                                     : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
                                 )}
                               >
-                                {feature.available ? (
+                                {isAvailable ? (
                                   <IconCheck className="h-3 w-3" />
                                 ) : (
                                   <IconX className="h-3 w-3" />
@@ -2546,12 +2546,12 @@ export default function CarsPage() {
                               <span
                                 className={cn(
                                   "text-sm",
-                                  feature.available
+                                  isAvailable
                                     ? "text-gray-900 dark:text-gray-100 font-medium"
                                     : "text-gray-500 dark:text-gray-400",
                                 )}
                               >
-                                {feature.name}
+                                {featureName}
                               </span>
                             </div>
                           ))}
@@ -2559,7 +2559,7 @@ export default function CarsPage() {
                       </div>
                     )}
 
-                    {/* Specifications - Improved with better spacing and organization */}
+                    {/* Specifications - Updated for new API structure */}
                     {viewCar.specifications &&
                       viewCar.specifications.length > 0 && (
                         <div>
@@ -2571,16 +2571,16 @@ export default function CarsPage() {
                               variant="outline"
                               className="text-xs bg-gray-100 dark:bg-gray-800"
                             >
-                              {viewCar.specifications.length} items
+                              {Object.keys(viewCar.specifications[0]?.specifications || {}).length} items
                             </Badge>
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                            {viewCar.specifications.map((spec, index) => (
+                            {Object.entries(viewCar.specifications[0]?.specifications || {}).map(([specName, isAvailable]) => (
                               <div
-                                key={index}
+                                key={specName}
                                 className={cn(
                                   "flex items-center gap-2 p-2 rounded-md border text-sm",
-                                  spec.available
+                                  isAvailable
                                     ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
                                     : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60",
                                 )}
@@ -2588,12 +2588,12 @@ export default function CarsPage() {
                                 <div
                                   className={cn(
                                     "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
-                                    spec.available
+                                    isAvailable
                                       ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
                                       : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
                                   )}
                                 >
-                                  {spec.available ? (
+                                  {isAvailable ? (
                                     <IconCheck className="h-3 w-3" />
                                   ) : (
                                     <IconX className="h-3 w-3" />
@@ -2602,12 +2602,12 @@ export default function CarsPage() {
                                 <span
                                   className={cn(
                                     "text-sm",
-                                    spec.available
+                                    isAvailable
                                       ? "text-gray-900 dark:text-gray-100 font-medium"
                                       : "text-gray-500 dark:text-gray-400",
                                   )}
                                 >
-                                  {spec.name}
+                                  {specName}
                                 </span>
                               </div>
                             ))}

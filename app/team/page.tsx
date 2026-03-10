@@ -773,7 +773,6 @@ export default function TeamPage() {
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
     autoResetPageIndex: false, // Prevent automatic page reset on data changes
-    autoResetPageSize: false,  // Prevent automatic page size reset
   });
 
   // ─── Drag End ──────────────────────────────────────────
