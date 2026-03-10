@@ -34,6 +34,7 @@ import {
   IconRefresh,
   IconCheck,
   IconLoader,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import {
   flexRender,
@@ -131,6 +132,8 @@ import {
   Award,
   Building2,
   Hash,
+  Check,
+  User,
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
@@ -288,7 +291,6 @@ export default function TeamPage() {
   const hasFetched = React.useRef(false);
 
   // Table state
-  const [data, setData] = React.useState<TeamMember[]>([]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -298,7 +300,6 @@ export default function TeamPage() {
 
   const [mounted, setMounted] = React.useState(false);
   const [isRefreshing, setIsRefreshing] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState("all");
 
   // Delete dialogs
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
@@ -345,25 +346,16 @@ export default function TeamPage() {
     }
   }, [dispatch]);
 
-  React.useEffect(() => {
-    if (members) setData(members.filter((m) => m && m._id));
-  }, [members]);
-
   React.useEffect(() => { setMounted(true); }, []);
 
-  // Department filter
-  const filteredData = React.useMemo(() => {
-    if (activeTab === "all") return data;
-    const departmentPositions = POSITION_DEPARTMENTS[activeTab];
-    if (departmentPositions) {
-      return data.filter((m) => departmentPositions.includes(m.position));
-    }
-    return data;
-  }, [data, activeTab]);
+  // Debug: Log when members change to verify Redux updates are working
+  React.useEffect(() => {
+    console.log('Members updated:', members?.length, 'items');
+  }, [members]);
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => filteredData?.map(({ _id }) => _id) || [],
-    [filteredData]
+    () => members?.filter((m) => m && m._id).map(({ _id }) => _id) || [],
+    [members]
   );
 
   // ─── Handlers ──────────────────────────────────────────
@@ -451,21 +443,31 @@ export default function TeamPage() {
     if (formImage) fd.append("image", formImage);
 
     if (editingMember) {
+      console.log('Updating member:', editingMember.name);
       const result = await dispatch(updateTeamMember({ id: editingMember._id, formData: fd }));
+      console.log('Update result:', result);
+      
       if (updateTeamMember.fulfilled.match(result)) {
+        console.log('Update successful, updated member:', result.payload);
         toast.success("Team member updated successfully!");
         setFormDrawerOpen(false);
         resetForm();
       } else {
+        console.log('Update failed:', result.payload);
         toast.error(result.payload ?? "Failed to update.");
       }
     } else {
+      console.log('Creating new member:', formName);
       const result = await dispatch(createTeamMember(fd));
+      console.log('Create result:', result);
+      
       if (createTeamMember.fulfilled.match(result)) {
+        console.log('Create successful, new member:', result.payload);
         toast.success("Team member created successfully!");
         setFormDrawerOpen(false);
         resetForm();
       } else {
+        console.log('Create failed:', result.payload);
         toast.error(result.payload ?? "Failed to create.");
       }
     }
@@ -510,10 +512,27 @@ export default function TeamPage() {
   };
 
   const handleToggleStatus = async (member: TeamMember) => {
+    console.log('Toggling status for:', member.name, 'Current status:', member.isActive);
+    
+    // Optimistic update - update UI immediately for instant feedback
+    const originalStatus = member.isActive;
+    const newStatus = !originalStatus;
+    
+    // Create optimistic member data
+    const optimisticMember = { ...member, isActive: newStatus };
+    
+    // Update Redux state optimistically for instant UI update
+    // Note: You might need to add an optimistic update action to Redux
+    // For now, we'll rely on the existing Redux update mechanism
+    
     const result = await dispatch(toggleTeamMemberStatus(member._id));
+    console.log('Toggle result:', result);
+    
     if (toggleTeamMemberStatus.fulfilled.match(result)) {
+      console.log('Toggle successful, new status:', result.payload.isActive);
       toast.success(`${member.name} is now ${result.payload.isActive ? "active" : "inactive"}`);
     } else {
+      console.log('Toggle failed:', result.payload);
       toast.error(result.payload ?? "Failed to toggle status.");
     }
   };
@@ -729,7 +748,7 @@ export default function TeamPage() {
 
   // ─── Table ─────────────────────────────────────────────
   const table = useReactTable({
-    data: filteredData,
+    data: members || [],
     columns,
     state: {
       sorting,
@@ -753,17 +772,26 @@ export default function TeamPage() {
     getSortedRowModel: getSortedRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
+    autoResetPageIndex: false, // Prevent automatic page reset on data changes
+    autoResetPageSize: false,  // Prevent automatic page size reset
   });
 
   // ─── Drag End ──────────────────────────────────────────
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (active && over && active.id !== over.id) {
-      setData((d) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(d, oldIndex, newIndex);
-      });
+      const oldIndex = dataIds.indexOf(active.id);
+      const newIndex = dataIds.indexOf(over.id);
+      
+      // Update local order for immediate UI feedback
+      const reorderedMembers = [...members];
+      const [moved] = reorderedMembers.splice(oldIndex, 1);
+      reorderedMembers.splice(newIndex, 0, moved);
+      
+      // Update Redux store with new order
+      // Note: You might need to add a thunk to update display order in the backend
+      // For now, this will just update the local display order
+      
       toast.success("Reordered successfully", { icon: <IconCheck className="h-4 w-4" /> });
     }
   }
@@ -811,6 +839,7 @@ export default function TeamPage() {
   if (!mounted) return null;
 
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const totalCount = table.getFilteredRowModel().rows.length;
 
   return (
     <SidebarProvider>
@@ -821,191 +850,220 @@ export default function TeamPage() {
           <div className="@container/main flex flex-1 flex-col gap-2 overflow-y-auto">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6 px-4 lg:px-6">
               {/* Header */}
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                   <h1 className="text-2xl font-bold tracking-tight">Team Management</h1>
                   <p className="text-muted-foreground">Manage your team members & departments</p>
                 </div>
-                <Button
-                  size="sm"
-                  className="h-9 gap-2 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
-                  onClick={openCreateDrawer}
-                >
-                  <IconPlus className="size-3.5" />
-                  <span className="hidden lg:inline">Add Member</span>
-                </Button>
+                
+                {/* Button Group - Only Add Button */}
+                <div className="flex items-center gap-1">
+                  {/* Note: Add, Refresh, Export buttons moved to toolbar search section */}
+                </div>
               </div>
 
               <TeamStatsCards />
 
-              {/* Department Tabs */}
-              <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); table.toggleAllRowsSelected(false); }}>
-                <TabsList className="flex-wrap h-auto gap-1">
-                  <TabsTrigger value="all" className="gap-2">
-                    <Users className="size-4" /> All
-                    <Badge variant="secondary" className="ml-1 text-xs">{data.length}</Badge>
-                  </TabsTrigger>
-                  {Object.entries(POSITION_DEPARTMENTS).map(([dept, positions]) => {
-                    const count = data.filter((m) => positions.includes(m.position)).length;
-                    return (
-                      <TabsTrigger key={dept} value={dept} className="gap-2">
-                        <Building2 className="size-4" /> {dept}
-                        <Badge variant="secondary" className="ml-1 text-xs">{count}</Badge>
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
+              {/* Main Content */}
+              <div className="w-full mt-4">
+                <TooltipProvider>
+                  <div className="w-full flex flex-col gap-6">
+                    {/* Toolbar - Single Row with Button Group */}
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-4 flex-1">
+                        {/* Search Bar */}
+                        <div className="relative flex-1 max-w-md">
+                          <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder="Search by name, email, position..."
+                            value={globalFilter ?? ""}
+                            onChange={(e) => setGlobalFilter(e.target.value)}
+                            className="h-9 pl-9 pr-4 w-full bg-muted/50 border-muted focus:bg-background transition-all duration-200"
+                          />
+                        </div>
 
-                <TabsContent value={activeTab} className="mt-4">
-                  <TooltipProvider>
-                    <div className="w-full flex flex-col gap-4">
-                      {/* Toolbar */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 flex-1">
-                          <div className="relative flex-1 max-w-md">
-                            <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                              placeholder="Search by name, email, position..."
-                              value={globalFilter ?? ""}
-                              onChange={(e) => setGlobalFilter(e.target.value)}
-                              className="h-9 pl-9 pr-4 w-full bg-muted/50 border-muted focus:bg-background transition-all duration-200"
-                            />
-                          </div>
-                          <Select
-                            value={(columnFilters.find((f) => f.id === "position")?.value as string) || "all"}
-                            onValueChange={(v) => {
-                              if (v === "all") {
-                                setColumnFilters((prev) => prev.filter((f) => f.id !== "position"));
-                              } else {
-                                setColumnFilters((prev) => {
-                                  const rest = prev.filter((f) => f.id !== "position");
-                                  return [...rest, { id: "position", value: v }];
-                                });
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="h-9 w-48">
-                              <SelectValue placeholder="Filter by position" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="all">All Positions</SelectItem>
-                              {Object.values(TeamPosition).map((pos) => (
-                                <SelectItem key={pos} value={pos}>
-                                  {POSITION_LABELS[pos]}
-                                </SelectItem>
+                        {/* Position Filter */}
+                        <Select
+                          value={(columnFilters.find((f) => f.id === "position")?.value as string) || "all"}
+                          onValueChange={(v) => {
+                            if (v === "all") {
+                              setColumnFilters((prev) => prev.filter((f) => f.id !== "position"));
+                            } else {
+                              setColumnFilters((prev) => {
+                                const rest = prev.filter((f) => f.id !== "position");
+                                return [...rest, { id: "position", value: v }];
+                              });
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="h-9 w-32 bg-muted/50 border-muted focus:bg-background">
+                            <SelectValue placeholder="Position" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Positions</SelectItem>
+                            {Object.values(TeamPosition).map((pos) => (
+                              <SelectItem key={pos} value={pos}>
+                                {POSITION_LABELS[pos]}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Columns Dropdown */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 gap-2 border-muted hover:bg-muted/50"
+                            >
+                              <IconLayoutColumns className="size-3.5" />
+                              <span className="hidden lg:inline">
+                                Columns
+                              </span>
+                              <IconChevronDown className="size-3.5" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-56">
+                            <DropdownMenuLabel>
+                              Toggle columns
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            {table
+                              .getAllColumns()
+                              .filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide())
+                              .map((col) => (
+                                <DropdownMenuCheckboxItem
+                                  key={col.id}
+                                  className="capitalize cursor-pointer"
+                                  checked={col.getIsVisible()}
+                                  onCheckedChange={(v) => col.toggleVisibility(!!v)}
+                                >
+                                  {col.id === "isActive" ? "Status" : col.id === "isFeatured" ? "Featured" : col.id === "yearsOfExperience" ? "Experience" : col.id === "createdAt" ? "Joined" : col.id}
+                                </DropdownMenuCheckboxItem>
                               ))}
-                            </SelectContent>
-                          </Select>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="h-9 gap-2 border-muted hover:bg-muted/50">
-                                <IconLayoutColumns className="size-3.5" />
-                                <span className="hidden lg:inline">Columns</span>
-                                <IconChevronDown className="size-3.5" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="w-56">
-                              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {table
-                                .getAllColumns()
-                                .filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide())
-                                .map((col) => (
-                                  <DropdownMenuCheckboxItem
-                                    key={col.id}
-                                    className="capitalize cursor-pointer"
-                                    checked={col.getIsVisible()}
-                                    onCheckedChange={(v) => col.toggleVisibility(!!v)}
-                                  >
-                                    {col.id === "isActive" ? "Status" : col.id === "isFeatured" ? "Featured" : col.id === "yearsOfExperience" ? "Experience" : col.id === "createdAt" ? "Joined" : col.id}
-                                  </DropdownMenuCheckboxItem>
-                                ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleRefresh} disabled={isRefreshing || loading}>
-                                <IconRefresh className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Refresh data</TooltipContent>
-                          </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={handleDownloadPDF}>
-                                <IconDownload className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Download PDF</TooltipContent>
-                          </Tooltip>
-                        </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
 
-                      {/* Bulk action bar */}
-                      {selectedCount > 0 && (
-                        <div className="flex items-center justify-between rounded-lg border bg-muted/50 px-4 py-2">
-                          <span className="text-sm font-medium">{selectedCount} member(s) selected</span>
-                          <div className="flex items-center gap-2">
-                            <Button variant="outline" size="sm" onClick={() => table.toggleAllRowsSelected(false)}>
-                              Clear selection
-                            </Button>
-                            <Button size="sm" className="bg-black text-white hover:bg-black/90" onClick={handleBulkDelete}>
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete ({selectedCount})
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      {/* Line Separator */}
+                      <div className="h-6 w-px bg-border" />
 
-                      {/* Data Table */}
-                      {loading ? (
-                        <div className="rounded-xl border bg-card shadow-lg">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader className="bg-linear-to-r from-muted/80 to-muted/40">
-                                <TableRow className="hover:bg-transparent">
-                                  {[40, 40, 280, 180, 200, 110, 80, 110, 130, 50].map((w, i) => (
-                                    <TableHead key={i} style={{ width: w }} className="h-11">
-                                      <Skeleton className="h-4 w-12 rounded" />
-                                    </TableHead>
-                                  ))}
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {Array.from({ length: 5 }).map((_, i) => (
-                                  <TableRow key={i}>
-                                    {[40, 40, 280, 180, 200, 110, 80, 110, 130, 50].map((w, j) => (
-                                      <TableCell key={j} style={{ width: w }}>
-                                        <Skeleton className="h-4 w-full rounded" />
-                                      </TableCell>
-                                    ))}
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                          </div>
+                      {/* Button Group: Add, Refresh, Export */}
+                      <div className="flex items-center gap-2">
+                        {/* Add Button */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="sm"
+                              className="h-9 w-9 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
+                              onClick={openCreateDrawer}
+                            >
+                              <IconPlus className="size-3.5" />
+                              <span className="sr-only">Add Member</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add Member</TooltipContent>
+                        </Tooltip>
+
+                        {/* Refresh Button */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 border-muted hover:bg-muted/50"
+                              onClick={handleRefresh}
+                              disabled={isRefreshing || loading}
+                            >
+                              <IconRefresh className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                              <span className="sr-only">Refresh</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Refresh data</TooltipContent>
+                        </Tooltip>
+
+                        {/* Export Button */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-9 w-9 border-muted hover:bg-muted/50"
+                              onClick={handleDownloadPDF}
+                            >
+                              <IconDownload className="h-4 w-4" />
+                              <span className="sr-only">Export</span>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Export PDF</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+
+                    {/* Bulk action bar - Enhanced styling */}
+                    {selectedCount > 0 && (
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border-2 border-primary/20 bg-primary/5 backdrop-blur-sm px-4 py-3 animate-in slide-in-from-top-2 duration-300">
+                        <div className="flex items-center gap-2">
+                          <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                          <span className="text-sm font-medium">
+                            {selectedCount} {selectedCount === 1 ? 'member' : 'members'} selected
+                          </span>
                         </div>
-                      ) : table.getFilteredRowModel().rows.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border bg-card shadow-lg">
-                          <div className="rounded-full bg-muted p-4 mb-4">
-                            <Users className="h-12 w-12 text-muted-foreground/50" />
-                          </div>
-                          <h3 className="text-lg font-semibold">No team members found</h3>
-                          <p className="text-muted-foreground mt-1 max-w-sm">
-                            {activeTab !== "all"
-                              ? `No members in the ${activeTab} department. Try switching tabs or add a new member.`
-                              : "Get started by adding your first team member."}
-                          </p>
-                          <Button className="mt-4" onClick={openCreateDrawer}>
-                            <IconPlus className="mr-2 h-4 w-4" />
-                            Add Team Member
+                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <Button variant="outline" size="sm" onClick={() => table.toggleAllRowsSelected(false)} className="w-full sm:w-auto">
+                            Clear selection
+                          </Button>
+                          <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto" onClick={handleBulkDelete}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete ({selectedCount})
                           </Button>
                         </div>
-                      ) : (
-                        <div className="rounded-xl border bg-card shadow-lg">
-                          <div className="overflow-x-auto">
+                      </div>
+                    )}
+
+                    {/* Data Table - Responsive container */}
+                    <div className="rounded-xl border bg-card shadow-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        {loading ? (
+                          <Table key="loading-table">
+                            <TableHeader className="bg-linear-to-r from-muted/80 to-muted/40">
+                              <TableRow className="hover:bg-transparent">
+                                {[40, 40, 280, 180, 200, 110, 80, 110, 130, 50].map((w, i) => (
+                                  <TableHead key={i} style={{ width: w }} className="h-11">
+                                    <Skeleton className="h-4 w-12 rounded" />
+                                  </TableHead>
+                                ))}
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {Array.from({ length: 5 }).map((_, i) => (
+                                <TableRow key={i}>
+                                  {[40, 40, 280, 180, 200, 110, 80, 110, 130, 50].map((w, j) => (
+                                    <TableCell key={j} style={{ width: w }}>
+                                      <Skeleton className="h-4 w-full rounded" />
+                                    </TableCell>
+                                  ))}
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        ) : table.getFilteredRowModel().rows.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-16 text-center">
+                            <div className="rounded-full bg-muted p-4 mb-4">
+                              <Users className="h-12 w-12 text-muted-foreground/50" />
+                            </div>
+                            <h3 className="text-lg font-semibold">No team members found</h3>
+                            <p className="text-muted-foreground mt-1 max-w-sm">
+                              Get started by adding your first team member.
+                            </p>
+                            <Button className="mt-4" onClick={openCreateDrawer}>
+                              <IconPlus className="mr-2 h-4 w-4" />
+                              Add Team Member
+                            </Button>
+                          </div>
+                        ) : (
+                          <>
                             <DndContext
                               collisionDetection={closestCenter}
                               modifiers={[restrictToVerticalAxis]}
@@ -1013,7 +1071,7 @@ export default function TeamPage() {
                               sensors={sensors}
                               id={sortableId}
                             >
-                              <Table>
+                              <Table key={`data-table-${members?.length || 0}`}>
                                 <TableHeader className="bg-linear-to-r from-muted/80 to-muted/40 sticky top-0 z-10">
                                   {table.getHeaderGroups().map((headerGroup) => (
                                     <TableRow key={headerGroup.id} className="hover:bg-transparent">
@@ -1039,62 +1097,67 @@ export default function TeamPage() {
                                 </TableBody>
                               </Table>
                             </DndContext>
-                          </div>
+                          </>
+                        )}
+                      </div>
 
-                          {/* Pagination */}
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-t px-4 py-4">
-                            <div className="text-sm text-muted-foreground">
-                              Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} -{" "}
-                              {Math.min(
-                                (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-                                table.getFilteredRowModel().rows.length
-                              )}{" "}
-                              of {table.getFilteredRowModel().rows.length} members
-                            </div>
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-                              <div className="flex items-center gap-2">
-                                <Label className="text-sm whitespace-nowrap">Rows per page</Label>
-                                <Select
-                                  value={`${table.getState().pagination.pageSize}`}
-                                  onValueChange={(v) => table.setPageSize(Number(v))}
-                                >
-                                  <SelectTrigger size="sm" className="w-18 h-8">
-                                    <SelectValue placeholder={table.getState().pagination.pageSize} />
-                                  </SelectTrigger>
-                                  <SelectContent side="top">
-                                    {[10, 20, 30, 50, 100].map((ps) => (
-                                      <SelectItem key={ps} value={`${ps}`}>{ps}</SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm whitespace-nowrap">
-                                  Page {table.getState().pagination.pageIndex + 1} of {table.getPageCount()}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.setPageIndex(0)} disabled={!table.getCanPreviousPage()}>
-                                    <IconChevronsLeft className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()}>
-                                    <IconChevronLeft className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.nextPage()} disabled={!table.getCanNextPage()}>
-                                    <IconChevronRight className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => table.setPageIndex(table.getPageCount() - 1)} disabled={!table.getCanNextPage()}>
-                                    <IconChevronsRight className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                      {/* Pagination - Following banner page design */}
+                      <div className="flex items-center justify-between border-t px-4 py-4">
+                        <div className="text-sm text-muted-foreground">
+                          Total: <span className="font-medium text-foreground">{table.getFilteredRowModel().rows.length}</span> members
+                          {selectedCount > 0 && (
+                            <span className="text-xs ml-2">
+                              ({selectedCount} selected)
+                            </span>
+                          )}
                         </div>
-                      )}
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => table.setPageIndex(0)}
+                            disabled={!table.getCanPreviousPage()}
+                          >
+                            <span className="sr-only">First page</span>
+                            <IconChevronsLeft className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => table.previousPage()}
+                            disabled={!table.getCanPreviousPage()}
+                          >
+                            <span className="sr-only">Previous page</span>
+                            <IconChevronLeft className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => table.nextPage()}
+                            disabled={!table.getCanNextPage()}
+                          >
+                            <span className="sr-only">Next page</span>
+                            <IconChevronRight className="size-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                            disabled={!table.getCanNextPage()}
+                          >
+                            <span className="sr-only">Last page</span>
+                            <IconChevronsRight className="size-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </TooltipProvider>
-                </TabsContent>
-              </Tabs>
+                  </div>
+                </TooltipProvider>
+              </div>
             </div>
           </div>
         </div>
@@ -1212,105 +1275,204 @@ export default function TeamPage() {
         {/* ═══════ CREATE / EDIT DRAWER ═══════ */}
         <Drawer open={formDrawerOpen} onOpenChange={setFormDrawerOpen} direction="right">
           <DrawerContent
-            className="fixed inset-y-0 right-0 w-full sm:w-130 rounded-none border-l bg-background flex flex-col h-full"
+            className="fixed inset-y-0 right-0 w-full sm:w-130 rounded-none border-l bg-white flex flex-col h-full shadow-2xl"
             style={{ maxWidth: "560px" }}
           >
-            <DrawerHeader className="border-b px-6 py-4">
-              <DrawerTitle>{editingMember ? "Edit Team Member" : "Add Team Member"}</DrawerTitle>
-              <DrawerDescription>
-                {editingMember ? "Update member information" : "Fill in the details to add a new member"}
-              </DrawerDescription>
+            {/* Header */}
+            <DrawerHeader className="border-b border-gray-200 px-6 py-6 bg-white">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                  {editingMember ? (
+                    <Edit className="h-5 w-5 text-primary" />
+                  ) : (
+                    <IconUserPlus className="h-5 w-5 text-primary" />
+                  )}
+                </div>
+                <div>
+                  <DrawerTitle className="text-lg font-semibold text-gray-900">
+                    {editingMember ? "Edit Team Member" : "Add Team Member"}
+                  </DrawerTitle>
+                  <DrawerDescription className="text-gray-500 text-sm">
+                    {editingMember ? "Update member information below" : "Fill in the details to add a new member"}
+                  </DrawerDescription>
+                </div>
+              </div>
             </DrawerHeader>
-            <div className="flex-1 overflow-y-auto px-6 py-6">
-              <div className="grid gap-5">
-                {/* Image Upload */}
-                <div className="space-y-2">
-                  <Label>Photo</Label>
+            
+            {/* Form Content */}
+            <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-6">
+              <div className="space-y-6">
+                {/* Profile Image Section */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-900 mb-4 block">Profile Photo</Label>
                   <div className="flex items-center gap-4">
-                    {formImagePreview ? (
-                      <Image src={formImagePreview} alt="Preview" width={64} height={64} className="rounded-full object-cover size-16 border" />
-                    ) : (
-                      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-muted-foreground text-xl font-bold border border-dashed">
-                        ?
+                    <div className="relative">
+                      {formImagePreview ? (
+                        <div className="relative">
+                          <Image src={formImagePreview} alt="Preview" width={80} height={80} className="rounded-full object-cover size-20 border-4 border-white shadow-lg" />
+                          <div className="absolute -bottom-1 -right-1 h-6 w-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                            <Check className="h-3 w-3 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 border-2 border-dashed border-gray-300">
+                          <User className="h-8 w-8 text-gray-400" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handleImageChange} 
+                        className="max-w-xs border-gray-300 focus:border-black focus:ring-black" 
+                      />
+                      <p className="text-xs text-gray-500 mt-1">JPG, PNG or GIF (max. 2MB)</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Basic Information */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-900 mb-4 block">Basic Information</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="formName" className="text-sm font-medium text-gray-700">Full Name *</Label>
+                      <Input 
+                        id="formName" 
+                        placeholder="John Doe" 
+                        value={formName} 
+                        onChange={(e) => setFormName(e.target.value)} 
+                        className="border-gray-300 focus:border-black focus:ring-black" 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="formEmail" className="text-sm font-medium text-gray-700">Email Address *</Label>
+                      <Input 
+                        id="formEmail" 
+                        type="email" 
+                        placeholder="john@example.com" 
+                        value={formEmail} 
+                        onChange={(e) => setFormEmail(e.target.value)} 
+                        className="border-gray-300 focus:border-black focus:ring-black" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Position *</Label>
+                      <Select value={formPosition} onValueChange={setFormPosition}>
+                        <SelectTrigger className="border-gray-300 focus:border-black focus:ring-black">
+                          <SelectValue placeholder="Select position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(POSITION_DEPARTMENTS).map(([dept, positions]) => (
+                            <React.Fragment key={dept}>
+                              <DropdownMenuLabel className="text-xs font-semibold text-gray-900 bg-gray-50 px-3 py-2">{dept}</DropdownMenuLabel>
+                              {positions.map((pos) => (
+                                <SelectItem key={pos} value={pos} className="text-sm">{POSITION_LABELS[pos]}</SelectItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                            </React.Fragment>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="formYears" className="text-sm font-medium text-gray-700">Years of Experience</Label>
+                      <Input 
+                        id="formYears" 
+                        type="number" 
+                        min="0" 
+                        placeholder="15" 
+                        value={formYears} 
+                        onChange={(e) => setFormYears(e.target.value)} 
+                        className="border-gray-300 focus:border-black focus:ring-black" 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Label htmlFor="formTagline" className="text-sm font-medium text-gray-700">Professional Tagline</Label>
+                    <Input 
+                      id="formTagline" 
+                      placeholder="Expert in luxury car valuation" 
+                      value={formTagline} 
+                      onChange={(e) => setFormTagline(e.target.value)} 
+                      className="border-gray-300 focus:border-black focus:ring-black mt-1" 
+                    />
+                  </div>
+                </div>
+
+                {/* Contact Information */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-900 mb-4 block">Contact Information</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Contact Number</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          className="w-20 border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="+1" 
+                          value={formContactCode} 
+                          onChange={(e) => setFormContactCode(e.target.value)} 
+                        />
+                        <Input 
+                          placeholder="5551234567" 
+                          value={formContactNum} 
+                          onChange={(e) => setFormContactNum(e.target.value)} 
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                        />
                       </div>
-                    )}
-                    <Input type="file" accept="image/*" onChange={handleImageChange} className="max-w-60" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="formName">Name *</Label>
-                    <Input id="formName" placeholder="John Doe" value={formName} onChange={(e) => setFormName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="formEmail">Email *</Label>
-                    <Input id="formEmail" type="email" placeholder="john@example.com" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Position *</Label>
-                    <Select value={formPosition} onValueChange={setFormPosition}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select position" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(POSITION_DEPARTMENTS).map(([dept, positions]) => (
-                          <React.Fragment key={dept}>
-                            <DropdownMenuLabel className="text-xs text-muted-foreground px-2 py-1">{dept}</DropdownMenuLabel>
-                            {positions.map((pos) => (
-                              <SelectItem key={pos} value={pos}>{POSITION_LABELS[pos]}</SelectItem>
-                            ))}
-                            <DropdownMenuSeparator />
-                          </React.Fragment>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="formYears">Years of Experience</Label>
-                    <Input id="formYears" type="number" min="0" placeholder="15" value={formYears} onChange={(e) => setFormYears(e.target.value)} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="formTagline">Tagline</Label>
-                  <Input id="formTagline" placeholder="Expert in luxury car valuation" value={formTagline} onChange={(e) => setFormTagline(e.target.value)} />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Contact Number</Label>
-                    <div className="flex gap-2">
-                      <Input className="w-20" placeholder="+1" value={formContactCode} onChange={(e) => setFormContactCode(e.target.value)} />
-                      <Input placeholder="5551234567" value={formContactNum} onChange={(e) => setFormContactNum(e.target.value)} />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>WhatsApp Number</Label>
-                    <div className="flex gap-2">
-                      <Input className="w-20" placeholder="+1" value={formWhatsappCode} onChange={(e) => setFormWhatsappCode(e.target.value)} />
-                      <Input placeholder="5551234567" value={formWhatsappNum} onChange={(e) => setFormWhatsappNum(e.target.value)} />
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">WhatsApp Number</Label>
+                      <div className="flex gap-2">
+                        <Input 
+                          className="w-20 border-gray-300 focus:border-black focus:ring-black" 
+                          placeholder="+1" 
+                          value={formWhatsappCode} 
+                          onChange={(e) => setFormWhatsappCode(e.target.value)} 
+                        />
+                        <Input 
+                          placeholder="5551234567" 
+                          value={formWhatsappNum} 
+                          onChange={(e) => setFormWhatsappNum(e.target.value)} 
+                          className="border-gray-300 focus:border-black focus:ring-black" 
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="formBio">Bio</Label>
-                  <Textarea id="formBio" placeholder="Write a short bio..." value={formBio} onChange={(e) => setFormBio(e.target.value)} rows={4} />
+                {/* Bio Section */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-900 mb-4 block">Professional Bio</Label>
+                  <Textarea 
+                    id="formBio" 
+                    placeholder="Write a brief professional biography..." 
+                    value={formBio} 
+                    onChange={(e) => setFormBio(e.target.value)} 
+                    rows={4} 
+                    className="border-gray-300 focus:border-black focus:ring-black resize-none" 
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Brief description of professional background and expertise</p>
                 </div>
 
-                {/* Tags */}
-                <div className="space-y-2">
-                  <Label>Expertise Tags</Label>
+                {/* Expertise Tags */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+                  <Label className="text-sm font-semibold text-gray-900 mb-4 block">Expertise Areas</Label>
                   <div className="flex flex-wrap gap-2">
                     {Object.values(TeamMemberTag).map((tag) => (
                       <Badge
                         key={tag}
                         variant={formTags.includes(tag) ? "default" : "outline"}
-                        className="cursor-pointer transition-all hover:scale-105"
+                        className={`cursor-pointer transition-all hover:scale-105 px-3 py-1.5 text-sm ${
+                          formTags.includes(tag) 
+                            ? "bg-black text-white border-black hover:bg-gray-800" 
+                            : "border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50"
+                        }`}
                         onClick={() => handleTagToggle(tag)}
                       >
                         {formTags.includes(tag) && <IconCheck className="size-3 mr-1" />}

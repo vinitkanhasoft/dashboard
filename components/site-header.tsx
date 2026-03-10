@@ -17,7 +17,7 @@ export function SiteHeader() {
   const dispatch = useAppDispatch()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
-  const [loggingOut, setLoggingOut] = React.useState(false)
+  // const [loggingOut, setLoggingOut] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
@@ -38,16 +38,8 @@ export function SiteHeader() {
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ')
   }
-
-  const handleLogout = async () => {
-    setLoggingOut(true)
-    await dispatch(logoutUser())
-    toast.success("Logged out successfully")
-    router.push('/login')
-  }
-
   return (
-    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
+    <header className="sticky top-0 z-50 flex h-(--header-height) shrink-0 items-center gap-2 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height) p-2">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
         <SidebarTrigger className="-ml-1" />
         <Separator
@@ -71,16 +63,6 @@ export function SiteHeader() {
               <span className="sr-only">Toggle theme</span>
             </Button>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">{loggingOut ? "Logging out..." : "Logout"}</span>
-          </Button>
         </div>
       </div>
     </header>

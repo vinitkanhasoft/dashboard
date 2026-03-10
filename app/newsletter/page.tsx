@@ -141,6 +141,7 @@ import {
   sendQuickEmail,
   sendTestEmail,
   fetchMarketingStats,
+  unsubscribeEmail,
   type Subscription,
   type Campaign,
 } from "@/lib/redux/newsletterSlice";
@@ -328,7 +329,7 @@ function NewsletterCards() {
 // ─── Main Page ────────────────────────────────────────────
 export default function NewsletterPage() {
   const dispatch = useAppDispatch();
-  const { subscriptions, campaigns, loading, campaignsLoading, creating, sending } =
+  const { subscriptions, campaigns, loading, campaignsLoading, creating, sending, unsubscribing } =
     useAppSelector((s) => s.newsletter);
 
   const hasFetched = React.useRef(false);
@@ -527,6 +528,16 @@ export default function NewsletterPage() {
     }
   }
 
+  // ─── Unsubscribe Handler ───────────────────────────────
+  const handleUnsubscribe = async (email: string) => {
+    const result = await dispatch(unsubscribeEmail(email));
+    if (unsubscribeEmail.fulfilled.match(result)) {
+      toast.success(`${email} has been unsubscribed successfully`);
+    } else {
+      toast.error(result.payload ?? "Failed to unsubscribe email");
+    }
+  };
+
   // ─── Campaign Handlers ────────────────────────────────
   const handleDeleteCampaign = (camp: Campaign) => {
     setCampToDelete(camp);
@@ -717,8 +728,8 @@ export default function NewsletterPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   className="cursor-pointer gap-2"
-                  // onClick={() => handleUnsubscribe(row.original.email)}
-                  disabled={!row.original.isActive}
+                  onClick={() => handleUnsubscribe(row.original.email)}
+                  disabled={!row.original.isActive || unsubscribing}
                 >
                   <UserX className="h-4 w-4" />
                   <span>Unsubscribe</span>

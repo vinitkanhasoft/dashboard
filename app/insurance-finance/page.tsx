@@ -364,6 +364,7 @@ export default function InsuranceFinancePage() {
   const [finFormIsPopular, setFinFormIsPopular] = React.useState(false);
   const [finFormContactNumber, setFinFormContactNumber] = React.useState("");
   const [finFormEmail, setFinFormEmail] = React.useState("");
+  const [finFormWebsite, setFinFormWebsite] = React.useState("");
   const [finFormPreApproval, setFinFormPreApproval] = React.useState(false);
   const [finFormInstantDisbursement, setFinFormInstantDisbursement] = React.useState(false);
   const [finFormLogo, setFinFormLogo] = React.useState<File | null>(null);
@@ -433,7 +434,10 @@ export default function InsuranceFinancePage() {
     setInsFormIsPremium(false);
     setInsFormLogo(null);
     setInsFormLogoPreview(null);
+    setInsFormErrors({});
   };
+
+  const [insFormErrors, setInsFormErrors] = React.useState<Record<string, string>>({});
 
   const openCreateInsDrawer = () => {
     resetInsForm();
@@ -477,10 +481,121 @@ export default function InsuranceFinancePage() {
     );
   };
 
+  const validateInsuranceForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Company Name validation
+    if (!insFormName.trim()) {
+      errors.name = 'Company name is required';
+      setInsFormErrors(errors);
+      return false;
+    } else if (insFormName.trim().length > 200) {
+      errors.name = 'Company name cannot exceed 200 characters';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Description validation
+    if (!insFormDescription.trim()) {
+      errors.description = 'Description is required';
+      setInsFormErrors(errors);
+      return false;
+    } else if (insFormDescription.trim().length > 2000) {
+      errors.description = 'Description cannot exceed 2000 characters';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Email validation
+    if (!insFormEmail.trim()) {
+      errors.email = 'Email is required';
+      setInsFormErrors(errors);
+      return false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(insFormEmail.trim())) {
+      errors.email = 'Please provide a valid email address';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Contact Number validation
+    if (!insFormContactNumber.trim()) {
+      errors.contactNumber = 'Contact number is required';
+      setInsFormErrors(errors);
+      return false;
+    } else if (!/^\+?[\d\s\-\(\)]+$/.test(insFormContactNumber.trim())) {
+      errors.contactNumber = 'Please provide a valid contact number';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Website validation (optional)
+    if (insFormWebsite.trim()) {
+      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+      if (!urlPattern.test(insFormWebsite.trim())) {
+        errors.website = 'Please provide a valid website URL';
+        setInsFormErrors(errors);
+        return false;
+      }
+    }
+    
+    // Coverage Types validation
+    if (insFormCoverageTypes.length === 0) {
+      errors.coverageTypes = 'At least one coverage type is required';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Insurance Types validation
+    if (insFormInsuranceTypes.length === 0) {
+      errors.insuranceTypes = 'At least one insurance type is required';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // EMI Start Price validation
+    const emiPrice = parseFloat(insFormEmiStartPrice);
+    if (isNaN(emiPrice) || emiPrice < 0) {
+      errors.emiStartPrice = 'EMI start price must be a positive number';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Min Coverage Amount validation
+    const minCoverage = parseFloat(insFormMinCoverage);
+    if (isNaN(minCoverage) || minCoverage < 0) {
+      errors.minCoverageAmount = 'Minimum coverage amount must be a positive number';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Max Coverage Amount validation
+    const maxCoverage = parseFloat(insFormMaxCoverage);
+    if (isNaN(maxCoverage) || maxCoverage < 0) {
+      errors.maxCoverageAmount = 'Maximum coverage amount must be a positive number';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    // Coverage range validation
+    if (!isNaN(minCoverage) && !isNaN(maxCoverage) && minCoverage > maxCoverage) {
+      errors.coverageRange = 'Minimum coverage cannot be greater than maximum coverage';
+      setInsFormErrors(errors);
+      return false;
+    }
+    
+    setInsFormErrors({});
+    return true;
+  };
+
   const handleInsFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!insFormName.trim()) { toast.error("Company name is required"); return; }
-    if (!insFormEmail.trim()) { toast.error("Email is required"); return; }
+    
+    if (!validateInsuranceForm()) {
+      // Show only the first error in toast
+      const firstError = Object.values(insFormErrors)[0];
+      toast.error(firstError);
+      return;
+    }
 
     const fd = new FormData();
     fd.append("name", insFormName.trim());
@@ -550,11 +665,15 @@ export default function InsuranceFinancePage() {
     setFinFormIsPopular(false);
     setFinFormContactNumber("");
     setFinFormEmail("");
+    setFinFormWebsite("");
     setFinFormPreApproval(false);
     setFinFormInstantDisbursement(false);
     setFinFormLogo(null);
     setFinFormLogoPreview(null);
+    setFinFormErrors({});
   };
+
+  const [finFormErrors, setFinFormErrors] = React.useState<Record<string, string>>({});
 
   const openCreateFinDrawer = () => {
     resetFinForm();
@@ -576,6 +695,7 @@ export default function InsuranceFinancePage() {
     setFinFormIsPopular(option.isPopular);
     setFinFormContactNumber(option.contactNumber);
     setFinFormEmail(option.email);
+    setFinFormWebsite(option.website || "");
     setFinFormPreApproval(option.preApprovalAvailable);
     setFinFormInstantDisbursement(option.instantDisbursement);
     setFinFormLogoPreview(option.logo?.url || null);
@@ -590,10 +710,153 @@ export default function InsuranceFinancePage() {
     }
   };
 
+  const validateFinanceForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Bank Name validation
+    if (!finFormBankName.trim()) {
+      errors.bankName = 'Bank name is required';
+      setFinFormErrors(errors);
+      return false;
+    } else if (finFormBankName.trim().length > 200) {
+      errors.bankName = 'Bank name cannot exceed 200 characters';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Description validation
+    if (!finFormDescription.trim()) {
+      errors.description = 'Description is required';
+      setFinFormErrors(errors);
+      return false;
+    } else if (finFormDescription.trim().length > 2000) {
+      errors.description = 'Description cannot exceed 2000 characters';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Finance Type validation
+    if (!finFormFinanceType) {
+      errors.financeType = 'Finance type is required';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Email validation
+    if (!finFormEmail.trim()) {
+      errors.email = 'Email is required';
+      setFinFormErrors(errors);
+      return false;
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(finFormEmail.trim())) {
+      errors.email = 'Please provide a valid email address';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Contact Number validation
+    if (!finFormContactNumber.trim()) {
+      errors.contactNumber = 'Contact number is required';
+      setFinFormErrors(errors);
+      return false;
+    } else if (!/^\+?[\d\s\-\(\)]+$/.test(finFormContactNumber.trim())) {
+      errors.contactNumber = 'Please provide a valid contact number';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Website validation (optional)
+    if (finFormWebsite.trim()) {
+      const urlPattern = /^(https?:\/\/)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&//=]*)$/;
+      if (!urlPattern.test(finFormWebsite.trim())) {
+        errors.website = 'Please provide a valid website URL';
+        setFinFormErrors(errors);
+        return false;
+      }
+    }
+    
+    // Interest Rate validation
+    const interestRate = parseFloat(finFormInterestRate);
+    if (isNaN(interestRate) || interestRate < 0 || interestRate > 100) {
+      errors.interestRate = 'Interest rate must be between 0 and 100';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Processing Fee validation
+    const processingFee = parseFloat(finFormProcessingFee);
+    if (finFormProcessingFee && (isNaN(processingFee) || processingFee < 0)) {
+      errors.processingFee = 'Processing fee must be a positive number';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // EMI Start Price validation
+    const emiPrice = parseFloat(finFormEmiStartPrice);
+    if (isNaN(emiPrice) || emiPrice < 0) {
+      errors.emiStartPrice = 'EMI start price must be a positive number';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Min Loan Amount validation
+    const minLoan = parseFloat(finFormMinLoan);
+    if (isNaN(minLoan) || minLoan < 0) {
+      errors.minLoanAmount = 'Minimum loan amount must be a positive number';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Max Loan Amount validation
+    const maxLoan = parseFloat(finFormMaxLoan);
+    if (isNaN(maxLoan) || maxLoan < 0) {
+      errors.maxLoanAmount = 'Maximum loan amount must be a positive number';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Loan range validation
+    if (!isNaN(minLoan) && !isNaN(maxLoan) && minLoan > maxLoan) {
+      errors.loanRange = 'Minimum loan amount cannot be greater than maximum loan amount';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Min Tenure validation
+    const minTenure = parseInt(finFormMinTenure);
+    if (isNaN(minTenure) || minTenure < 1 || minTenure > 360) {
+      errors.minTenure = 'Minimum tenure must be between 1 and 360 months';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Max Tenure validation
+    const maxTenure = parseInt(finFormMaxTenure);
+    if (isNaN(maxTenure) || maxTenure < 1 || maxTenure > 360) {
+      errors.maxTenure = 'Maximum tenure must be between 1 and 360 months';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    // Tenure range validation
+    if (!isNaN(minTenure) && !isNaN(maxTenure) && minTenure > maxTenure) {
+      errors.tenureRange = 'Minimum tenure cannot be greater than maximum tenure';
+      setFinFormErrors(errors);
+      return false;
+    }
+    
+    setFinFormErrors({});
+    return true;
+  };
+
   const handleFinFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!finFormBankName.trim()) { toast.error("Bank name is required"); return; }
-    if (!finFormFinanceType) { toast.error("Finance type is required"); return; }
+    
+    if (!validateFinanceForm()) {
+      // Show only the first error in toast
+      const firstError = Object.values(finFormErrors)[0];
+      toast.error(firstError);
+      return;
+    }
 
     const fd = new FormData();
     fd.append("bankName", finFormBankName.trim());
@@ -609,6 +872,7 @@ export default function InsuranceFinancePage() {
     fd.append("isPopular", String(finFormIsPopular));
     fd.append("contactNumber", finFormContactNumber.trim());
     fd.append("email", finFormEmail.trim());
+    fd.append("website", finFormWebsite.trim());
     fd.append("preApprovalAvailable", String(finFormPreApproval));
     fd.append("instantDisbursement", String(finFormInstantDisbursement));
     if (finFormLogo) fd.append("logo", finFormLogo);
@@ -780,7 +1044,7 @@ export default function InsuranceFinancePage() {
         accessorKey: "coverageTypes",
         header: "Coverage Types",
         cell: ({ row }) => (
-          <div className={cn('flex', 'flex-wrap', 'gap-1', 'max-w-[200px]')}>
+          <div className={cn('flex', 'flex-wrap', 'gap-1', 'max-w-50')}>
             {row.original.coverageTypes.slice(0, 2).map((t) => (
               <Badge key={t} variant="outline" className="text-xs">
                 {COVERAGE_TYPE_LABELS[t as CoverageType] || t}
@@ -1552,31 +1816,80 @@ export default function InsuranceFinancePage() {
               <div className={cn('grid', 'grid-cols-1', 'gap-6')}>
                 <div className="space-y-2.5">
                   <Label htmlFor="ins-name" className={cn('text-sm', 'font-medium')}>Company Name *</Label>
-                  <Input id="ins-name" value={insFormName} onChange={(e) => setInsFormName(e.target.value)} placeholder="e.g. HDFC Ergo" className="h-11" required />
+                  <Input 
+                    id="ins-name" 
+                    value={insFormName} 
+                    onChange={(e) => setInsFormName(e.target.value)} 
+                    placeholder="e.g. HDFC Ergo" 
+                    className={cn('h-11', insFormErrors.name && 'border-red-500 focus:border-red-500')} 
+                    required 
+                  />
+                  {insFormErrors.name && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.name}</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="ins-desc" className={cn('text-sm', 'font-medium')}>Description</Label>
-                  <Textarea id="ins-desc" value={insFormDescription} onChange={(e) => setInsFormDescription(e.target.value)} placeholder="Brief description of the insurance company..." rows={4} className="resize-none" />
+                  <Label htmlFor="ins-desc" className={cn('text-sm', 'font-medium')}>Description *</Label>
+                  <Textarea 
+                    id="ins-desc" 
+                    value={insFormDescription} 
+                    onChange={(e) => setInsFormDescription(e.target.value)} 
+                    placeholder="Brief description of the insurance company..." 
+                    rows={4} 
+                    className={cn('resize-none', insFormErrors.description && 'border-red-500 focus:border-red-500')} 
+                  />
+                  {insFormErrors.description && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.description}</p>
+                  )}
                 </div>
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-5')}>
                   <div className="space-y-2.5">
                     <Label htmlFor="ins-email" className={cn('text-sm', 'font-medium')}>Email *</Label>
-                    <Input id="ins-email" type="email" value={insFormEmail} onChange={(e) => setInsFormEmail(e.target.value)} placeholder="contact@company.com" className="h-11" required />
+                    <Input 
+                      id="ins-email" 
+                      type="email" 
+                      value={insFormEmail} 
+                      onChange={(e) => setInsFormEmail(e.target.value)} 
+                      placeholder="contact@company.com" 
+                      className={cn('h-11', insFormErrors.email && 'border-red-500 focus:border-red-500')} 
+                      required 
+                    />
+                    {insFormErrors.email && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
-                    <Label htmlFor="ins-phone" className={cn('text-sm', 'font-medium')}>Contact Number</Label>
-                    <Input id="ins-phone" value={insFormContactNumber} onChange={(e) => setInsFormContactNumber(e.target.value)} placeholder="+91 9999999999" className="h-11" />
+                    <Label htmlFor="ins-phone" className={cn('text-sm', 'font-medium')}>Contact Number *</Label>
+                    <Input 
+                      id="ins-phone" 
+                      value={insFormContactNumber} 
+                      onChange={(e) => setInsFormContactNumber(e.target.value)} 
+                      placeholder="+91 9999999999" 
+                      className={cn('h-11', insFormErrors.contactNumber && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {insFormErrors.contactNumber && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.contactNumber}</p>
+                    )}
                   </div>
                 </div>
                 <div className="space-y-2.5">
                   <Label htmlFor="ins-website" className={cn('text-sm', 'font-medium')}>Website</Label>
-                  <Input id="ins-website" value={insFormWebsite} onChange={(e) => setInsFormWebsite(e.target.value)} placeholder="https://example.com" className="h-11" />
+                  <Input 
+                    id="ins-website" 
+                    value={insFormWebsite} 
+                    onChange={(e) => setInsFormWebsite(e.target.value)} 
+                    placeholder="https://example.com" 
+                    className={cn('h-11', insFormErrors.website && 'border-red-500 focus:border-red-500')} 
+                  />
+                  {insFormErrors.website && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.website}</p>
+                  )}
                 </div>
 
                 {/* Coverage Types */}
                 <div className="space-y-3">
-                  <Label className={cn('text-sm', 'font-medium')}>Coverage Types</Label>
-                  <div className={cn('flex', 'flex-wrap', 'gap-2.5', 'p-4', 'rounded-lg', 'bg-muted/40', 'border')}>
+                  <Label className={cn('text-sm', 'font-medium')}>Coverage Types *</Label>
+                  <div className={cn('flex', 'flex-wrap', 'gap-2.5', 'p-4', 'rounded-lg', 'bg-muted/40', 'border', insFormErrors.coverageTypes && 'border-red-500')}>
                     {Object.values(CoverageType).map((type) => (
                       <Badge
                         key={type}
@@ -1588,12 +1901,15 @@ export default function InsuranceFinancePage() {
                       </Badge>
                     ))}
                   </div>
+                  {insFormErrors.coverageTypes && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.coverageTypes}</p>
+                  )}
                 </div>
 
                 {/* Insurance Types */}
                 <div className="space-y-3">
-                  <Label className={cn('text-sm', 'font-medium')}>Insurance Product Types</Label>
-                  <div className={cn('flex', 'flex-wrap', 'gap-2.5', 'p-4', 'rounded-lg', 'bg-muted/40', 'border')}>
+                  <Label className={cn('text-sm', 'font-medium')}>Insurance Product Types *</Label>
+                  <div className={cn('flex', 'flex-wrap', 'gap-2.5', 'p-4', 'rounded-lg', 'bg-muted/40', 'border', insFormErrors.insuranceTypes && 'border-red-500')}>
                     {Object.values(InsuranceProductType).map((type) => (
                       <Badge
                         key={type}
@@ -1605,20 +1921,58 @@ export default function InsuranceFinancePage() {
                       </Badge>
                     ))}
                   </div>
+                  {insFormErrors.insuranceTypes && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.insuranceTypes}</p>
+                  )}
                 </div>
 
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-5')}>
                   <div className="space-y-2.5">
                     <Label htmlFor="ins-emi" className={cn('text-sm', 'font-medium')}>EMI Start (₹)</Label>
-                    <Input id="ins-emi" type="number" min={0} value={insFormEmiStartPrice} onChange={(e) => setInsFormEmiStartPrice(e.target.value)} placeholder="999" className="h-11" />
+                    <Input 
+                      id="ins-emi" 
+                      type="number" 
+                      min={0} 
+                      value={insFormEmiStartPrice} 
+                      onChange={(e) => setInsFormEmiStartPrice(e.target.value)} 
+                      placeholder="999" 
+                      className={cn('h-11', insFormErrors.emiStartPrice && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {insFormErrors.emiStartPrice && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.emiStartPrice}</p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="ins-min" className={cn('text-sm', 'font-medium')}>Min Coverage (₹)</Label>
-                    <Input id="ins-min" type="number" min={0} value={insFormMinCoverage} onChange={(e) => setInsFormMinCoverage(e.target.value)} placeholder="100000" className="h-11" />
+                    <Input 
+                      id="ins-min" 
+                      type="number" 
+                      min={0} 
+                      value={insFormMinCoverage} 
+                      onChange={(e) => setInsFormMinCoverage(e.target.value)} 
+                      placeholder="100000" 
+                      className={cn('h-11', (insFormErrors.minCoverageAmount || insFormErrors.coverageRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {(insFormErrors.minCoverageAmount || insFormErrors.coverageRange) && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>
+                        {insFormErrors.minCoverageAmount || insFormErrors.coverageRange}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="ins-max" className={cn('text-sm', 'font-medium')}>Max Coverage (₹)</Label>
-                    <Input id="ins-max" type="number" min={0} value={insFormMaxCoverage} onChange={(e) => setInsFormMaxCoverage(e.target.value)} placeholder="5000000" className="h-11" />
+                    <Input 
+                      id="ins-max" 
+                      type="number" 
+                      min={0} 
+                      value={insFormMaxCoverage} 
+                      onChange={(e) => setInsFormMaxCoverage(e.target.value)} 
+                      placeholder="5000000" 
+                      className={cn('h-11', (insFormErrors.maxCoverageAmount || insFormErrors.coverageRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {insFormErrors.maxCoverageAmount && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{insFormErrors.maxCoverageAmount}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1683,68 +2037,212 @@ export default function InsuranceFinancePage() {
               <div className={cn('grid', 'grid-cols-1', 'gap-6')}>
                 <div className="space-y-2.5">
                   <Label htmlFor="fin-bank" className={cn('text-sm', 'font-medium')}>Bank / Lender Name *</Label>
-                  <Input id="fin-bank" value={finFormBankName} onChange={(e) => setFinFormBankName(e.target.value)} placeholder="e.g. HDFC Bank" className="h-11" required />
+                  <Input 
+                    id="fin-bank" 
+                    value={finFormBankName} 
+                    onChange={(e) => setFinFormBankName(e.target.value)} 
+                    placeholder="e.g. HDFC Bank" 
+                    className={cn('h-11', finFormErrors.bankName && 'border-red-500 focus:border-red-500')} 
+                    required 
+                  />
+                  {finFormErrors.bankName && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.bankName}</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
-                  <Label htmlFor="fin-desc" className={cn('text-sm', 'font-medium')}>Description</Label>
-                  <Textarea id="fin-desc" value={finFormDescription} onChange={(e) => setFinFormDescription(e.target.value)} placeholder="Brief description of the finance option..." rows={4} className="resize-none" />
+                  <Label htmlFor="fin-desc" className={cn('text-sm', 'font-medium')}>Description *</Label>
+                  <Textarea 
+                    id="fin-desc" 
+                    value={finFormDescription} 
+                    onChange={(e) => setFinFormDescription(e.target.value)} 
+                    placeholder="Brief description of the finance option..." 
+                    rows={4} 
+                    className={cn('resize-none', finFormErrors.description && 'border-red-500 focus:border-red-500')} 
+                  />
+                  {finFormErrors.description && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.description}</p>
+                  )}
                 </div>
                 <div className="space-y-2.5">
                   <Label htmlFor="fin-type" className={cn('text-sm', 'font-medium')}>Finance Type *</Label>
                   <Select value={finFormFinanceType} onValueChange={setFinFormFinanceType}>
-                    <SelectTrigger id="fin-type" className="h-11"><SelectValue placeholder="Select finance type" /></SelectTrigger>
+                    <SelectTrigger id="fin-type" className={cn('h-11', finFormErrors.financeType && 'border-red-500 focus:border-red-500')}>
+                      <SelectValue placeholder="Select finance type" />
+                    </SelectTrigger>
                     <SelectContent>
                       {Object.values(FinanceType).map((type) => (
                         <SelectItem key={type} value={type}>{FINANCE_TYPE_LABELS[type]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {finFormErrors.financeType && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.financeType}</p>
+                  )}
                 </div>
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-5')}>
                   <div className="space-y-2.5">
-                    <Label htmlFor="fin-email" className={cn('text-sm', 'font-medium')}>Email</Label>
-                    <Input id="fin-email" type="email" value={finFormEmail} onChange={(e) => setFinFormEmail(e.target.value)} placeholder="loans@bank.com" className="h-11" />
+                    <Label htmlFor="fin-email" className={cn('text-sm', 'font-medium')}>Email *</Label>
+                    <Input 
+                      id="fin-email" 
+                      type="email" 
+                      value={finFormEmail} 
+                      onChange={(e) => setFinFormEmail(e.target.value)} 
+                      placeholder="loans@bank.com" 
+                      className={cn('h-11', finFormErrors.email && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.email && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.email}</p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
-                    <Label htmlFor="fin-phone" className={cn('text-sm', 'font-medium')}>Contact Number</Label>
-                    <Input id="fin-phone" value={finFormContactNumber} onChange={(e) => setFinFormContactNumber(e.target.value)} placeholder="+91 9999999999" className="h-11" />
+                    <Label htmlFor="fin-phone" className={cn('text-sm', 'font-medium')}>Contact Number *</Label>
+                    <Input 
+                      id="fin-phone" 
+                      value={finFormContactNumber} 
+                      onChange={(e) => setFinFormContactNumber(e.target.value)} 
+                      placeholder="+91 9999999999" 
+                      className={cn('h-11', finFormErrors.contactNumber && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.contactNumber && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.contactNumber}</p>
+                    )}
                   </div>
+                </div>
+                
+                <div className="space-y-2.5">
+                  <Label htmlFor="fin-website" className={cn('text-sm', 'font-medium')}>Website</Label>
+                  <Input 
+                    id="fin-website" 
+                    value={finFormWebsite} 
+                    onChange={(e) => setFinFormWebsite(e.target.value)} 
+                    placeholder="https://example.com" 
+                    className={cn('h-11', finFormErrors.website && 'border-red-500 focus:border-red-500')} 
+                  />
+                  {finFormErrors.website && (
+                    <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.website}</p>
+                  )}
                 </div>
 
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-5')}>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-rate" className={cn('text-sm', 'font-medium')}>Interest Rate (%)</Label>
-                    <Input id="fin-rate" type="number" step="0.1" min={0} value={finFormInterestRate} onChange={(e) => setFinFormInterestRate(e.target.value)} placeholder="8.5" className="h-11" />
+                    <Input 
+                      id="fin-rate" 
+                      type="number" 
+                      step="0.1" 
+                      min={0} 
+                      max={100} 
+                      value={finFormInterestRate} 
+                      onChange={(e) => setFinFormInterestRate(e.target.value)} 
+                      placeholder="8.5" 
+                      className={cn('h-11', finFormErrors.interestRate && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.interestRate && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.interestRate}</p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-fee" className={cn('text-sm', 'font-medium')}>Processing Fee (%)</Label>
-                    <Input id="fin-fee" type="number" step="0.1" min={0} value={finFormProcessingFee} onChange={(e) => setFinFormProcessingFee(e.target.value)} placeholder="1.5" className="h-11" />
+                    <Input 
+                      id="fin-fee" 
+                      type="number" 
+                      step="0.1" 
+                      min={0} 
+                      value={finFormProcessingFee} 
+                      onChange={(e) => setFinFormProcessingFee(e.target.value)} 
+                      placeholder="1.5" 
+                      className={cn('h-11', finFormErrors.processingFee && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.processingFee && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.processingFee}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'gap-5')}>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-emi" className={cn('text-sm', 'font-medium')}>EMI Start (₹)</Label>
-                    <Input id="fin-emi" type="number" min={0} value={finFormEmiStartPrice} onChange={(e) => setFinFormEmiStartPrice(e.target.value)} placeholder="5000" className="h-11" />
+                    <Input 
+                      id="fin-emi" 
+                      type="number" 
+                      min={0} 
+                      value={finFormEmiStartPrice} 
+                      onChange={(e) => setFinFormEmiStartPrice(e.target.value)} 
+                      placeholder="5000" 
+                      className={cn('h-11', finFormErrors.emiStartPrice && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.emiStartPrice && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.emiStartPrice}</p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-min-loan" className={cn('text-sm', 'font-medium')}>Min Loan (₹)</Label>
-                    <Input id="fin-min-loan" type="number" min={0} value={finFormMinLoan} onChange={(e) => setFinFormMinLoan(e.target.value)} placeholder="100000" className="h-11" />
+                    <Input 
+                      id="fin-min-loan" 
+                      type="number" 
+                      min={0} 
+                      value={finFormMinLoan} 
+                      onChange={(e) => setFinFormMinLoan(e.target.value)} 
+                      placeholder="100000" 
+                      className={cn('h-11', (finFormErrors.minLoanAmount || finFormErrors.loanRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {(finFormErrors.minLoanAmount || finFormErrors.loanRange) && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>
+                        {finFormErrors.minLoanAmount || finFormErrors.loanRange}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-max-loan" className={cn('text-sm', 'font-medium')}>Max Loan (₹)</Label>
-                    <Input id="fin-max-loan" type="number" min={0} value={finFormMaxLoan} onChange={(e) => setFinFormMaxLoan(e.target.value)} placeholder="5000000" className="h-11" />
+                    <Input 
+                      id="fin-max-loan" 
+                      type="number" 
+                      min={0} 
+                      value={finFormMaxLoan} 
+                      onChange={(e) => setFinFormMaxLoan(e.target.value)} 
+                      placeholder="5000000" 
+                      className={cn('h-11', (finFormErrors.maxLoanAmount || finFormErrors.loanRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.maxLoanAmount && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.maxLoanAmount}</p>
+                    )}
                   </div>
                 </div>
 
                 <div className={cn('grid', 'grid-cols-1', 'sm:grid-cols-2', 'gap-5')}>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-min-tenure" className={cn('text-sm', 'font-medium')}>Min Tenure (months)</Label>
-                    <Input id="fin-min-tenure" type="number" min={0} value={finFormMinTenure} onChange={(e) => setFinFormMinTenure(e.target.value)} placeholder="12" className="h-11" />
+                    <Input 
+                      id="fin-min-tenure" 
+                      type="number" 
+                      min={1} 
+                      max={360} 
+                      value={finFormMinTenure} 
+                      onChange={(e) => setFinFormMinTenure(e.target.value)} 
+                      placeholder="12" 
+                      className={cn('h-11', (finFormErrors.minTenure || finFormErrors.tenureRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {(finFormErrors.minTenure || finFormErrors.tenureRange) && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>
+                        {finFormErrors.minTenure || finFormErrors.tenureRange}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2.5">
                     <Label htmlFor="fin-max-tenure" className={cn('text-sm', 'font-medium')}>Max Tenure (months)</Label>
-                    <Input id="fin-max-tenure" type="number" min={0} value={finFormMaxTenure} onChange={(e) => setFinFormMaxTenure(e.target.value)} placeholder="84" className="h-11" />
+                    <Input 
+                      id="fin-max-tenure" 
+                      type="number" 
+                      min={1} 
+                      max={360} 
+                      value={finFormMaxTenure} 
+                      onChange={(e) => setFinFormMaxTenure(e.target.value)} 
+                      placeholder="84" 
+                      className={cn('h-11', (finFormErrors.maxTenure || finFormErrors.tenureRange) && 'border-red-500 focus:border-red-500')} 
+                    />
+                    {finFormErrors.maxTenure && (
+                      <p className={cn('text-xs', 'text-red-500', 'mt-1')}>{finFormErrors.maxTenure}</p>
+                    )}
                   </div>
                 </div>
 
@@ -1909,6 +2407,10 @@ export default function InsuranceFinancePage() {
                   <div className={cn('rounded-xl', 'border', 'p-4', 'space-y-1')}>
                     <div className={cn('text-xs', 'text-muted-foreground', 'flex', 'items-center', 'gap-1.5')}><Mail className={cn('h-3.5', 'w-3.5')} /> Email</div>
                     <div className={cn('text-sm', 'font-medium', 'truncate')}>{viewFinance.email || "—"}</div>
+                  </div>
+                  <div className={cn('rounded-xl', 'border', 'p-4', 'space-y-1')}>
+                    <div className={cn('text-xs', 'text-muted-foreground', 'flex', 'items-center', 'gap-1.5')}><Globe className={cn('h-3.5', 'w-3.5')} /> Website</div>
+                    <div className={cn('text-sm', 'font-medium', 'truncate')}>{viewFinance.website || "—"}</div>
                   </div>
                 </div>
 

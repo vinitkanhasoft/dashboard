@@ -255,18 +255,33 @@ const teamSlice = createSlice({
       .addCase(fetchTeamStats.fulfilled, (state, action) => { state.stats = action.payload })
 
     builder
-      .addCase(createTeamMember.pending, (state) => { state.creating = true; state.error = null })
-      .addCase(createTeamMember.fulfilled, (state, action) => { state.creating = false; state.members.unshift(action.payload) })
-      .addCase(createTeamMember.rejected, (state, action) => { state.creating = false; state.error = action.payload ?? "Failed." })
+      .addCase(createTeamMember.pending, (state) => { 
+        state.creating = true; 
+        state.error = null 
+      })
+      .addCase(createTeamMember.fulfilled, (state, action) => { 
+        state.creating = false; 
+        state.members.unshift(action.payload) 
+      })
+      .addCase(createTeamMember.rejected, (state, action) => { 
+        state.creating = false; 
+        state.error = action.payload ?? "Failed." 
+      })
 
     builder
-      .addCase(updateTeamMember.pending, (state) => { state.updating = true; state.error = null })
+      .addCase(updateTeamMember.pending, (state) => { 
+        state.updating = true; 
+        state.error = null 
+      })
       .addCase(updateTeamMember.fulfilled, (state, action) => {
         state.updating = false
         const idx = state.members.findIndex((m) => m._id === action.payload._id)
         if (idx !== -1) state.members[idx] = action.payload
       })
-      .addCase(updateTeamMember.rejected, (state, action) => { state.updating = false; state.error = action.payload ?? "Failed." })
+      .addCase(updateTeamMember.rejected, (state, action) => { 
+        state.updating = false; 
+        state.error = action.payload ?? "Failed." 
+      })
 
     builder
       .addCase(deleteTeamMember.fulfilled, (state, action) => {
@@ -280,9 +295,25 @@ const teamSlice = createSlice({
       })
 
     builder
+      .addCase(toggleTeamMemberStatus.pending, (state, action) => {
+        // Optimistic update - toggle status immediately
+        const idx = state.members.findIndex((m) => m._id === action.meta.arg)
+        if (idx !== -1) {
+          state.members[idx] = { ...state.members[idx], isActive: !state.members[idx].isActive }
+        }
+      })
       .addCase(toggleTeamMemberStatus.fulfilled, (state, action) => {
+        // Update with actual response from server
         const idx = state.members.findIndex((m) => m._id === action.payload._id)
         if (idx !== -1) state.members[idx] = action.payload
+      })
+      .addCase(toggleTeamMemberStatus.rejected, (state, action) => {
+        // Revert optimistic update on error
+        const idx = state.members.findIndex((m) => m._id === action.meta.arg)
+        if (idx !== -1) {
+          state.members[idx] = { ...state.members[idx], isActive: !state.members[idx].isActive }
+        }
+        state.error = action.payload ?? "Failed to toggle status."
       })
   },
 })

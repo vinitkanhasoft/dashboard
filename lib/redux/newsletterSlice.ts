@@ -48,6 +48,7 @@ type NewsletterState = {
   subscribing: boolean
   creating: boolean
   sending: boolean
+  unsubscribing: boolean
 }
 
 type ErrorResponse = {
@@ -498,6 +499,52 @@ export const sendTestEmail = createAsyncThunk<
   }
 })
 
+/** POST /api/newsletter/unsubscribe */
+export const unsubscribeEmail = createAsyncThunk<
+  { email: string; message: string },
+  string,
+  { rejectValue: string }
+>("newsletter/unsubscribeEmail", async (email, { getState, dispatch, rejectWithValue }) => {
+  try {
+    const state = getState() as { auth: { accessToken: string | null } }
+    let accessToken = state.auth.accessToken || getAccessToken()
+    let res = await fetch(NEWSLETTER_ENDPOINTS.UNSUBSCRIBE, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify({ email }),
+    })
+
+    if (res.status === 401) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const refreshResult = await (dispatch as any)(refreshAccessToken())
+      if (refreshAccessToken.fulfilled.match(refreshResult)) {
+        accessToken = refreshResult.payload.accessToken
+        res = await fetch(NEWSLETTER_ENDPOINTS.UNSUBSCRIBE, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({ email }),
+        })
+      } else {
+        return rejectWithValue("Session expired. Please log in again.")
+      }
+    }
+
+    const json = await res.json()
+    if (!res.ok || !json.success) {
+      return rejectWithValue(json.message ?? "Failed to unsubscribe email.")
+    }
+    return json.data
+  } catch {
+    return rejectWithValue("Network error. Could not unsubscribe email.")
+  }
+})
+
 /** GET /api/newsletter/marketing-stats */
 export const fetchMarketingStats = createAsyncThunk<
   MarketingStats,
@@ -552,6 +599,7 @@ const initialState: NewsletterState = {
   subscribing: false,
   creating: false,
   sending: false,
+  unsubscribing: false,
 }
 
 // ─── Slice ───────────────────────────────────────────────
@@ -687,6 +735,25 @@ const newsletterSlice = createSlice({
     builder
       .addCase(fetchMarketingStats.fulfilled, (state, action) => {
         state.marketingStats = action.payload
+      })
+
+    // unsubscribeEmail
+    builder
+      .addCase(unsubscribeEmail.pending, (state) => {
+        state.unsubscribing = true
+        state.error = null
+      })
+      .addCase(unsubscribeEmail.fulfilled, (state, action) => {
+        state.unsubscribing = false
+        // Update the subscription status in the local state
+        const subscription = state.subscriptions.find(s => s.email === action.payload.email)
+        if (subscription) {
+          subscription.isActive = false
+        }
+      })
+      .addCase(unsubscribeEmail.rejected, (state, action) => {
+        state.unsubscribing = false
+        state.error = action.payload ?? "Failed to unsubscribe email."
       })
   },
 })

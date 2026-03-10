@@ -37,6 +37,7 @@ export type FinanceOption = {
   isPopular: boolean
   contactNumber: string
   email: string
+  website: string
   preApprovalAvailable: boolean
   instantDisbursement: boolean
   logo?: { url: string; publicId: string; alt: string }
