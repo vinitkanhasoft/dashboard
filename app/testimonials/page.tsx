@@ -1126,7 +1126,7 @@ export default function TestimonialsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="bg-black text-white hover:bg-black/90"
+                          className="bg-red-600 text-white hover:bg-red-500 transition-colors duration-200"
                           onClick={handleBulkDelete}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
@@ -1662,7 +1662,7 @@ export default function TestimonialsPage() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="bg-black hover:bg-black/80"
+                className="bg-red-600 hover:bg-red-500"
               >
                 Delete
               </AlertDialogAction>
@@ -1684,7 +1684,7 @@ export default function TestimonialsPage() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmBulkDelete}
-                className="bg-black hover:bg-black/80"
+                className="bg-red-600 hover:bg-red-500"
                 disabled={bulkDeleting}
               >
                 {bulkDeleting ? "Deleting..." : "Delete All"}
