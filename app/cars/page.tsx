@@ -2319,412 +2319,551 @@ export default function CarsPage() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-           <Sheet open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
-  <SheetContent className="w-full sm:max-w-2xl p-0 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
-    {/* Hidden accessibility elements */}
-    <SheetTitle className="sr-only">Car Details</SheetTitle>
-    <SheetDescription className="sr-only">Complete vehicle information</SheetDescription>
+            <Sheet open={viewDrawerOpen} onOpenChange={setViewDrawerOpen}>
+              <SheetContent className="w-full sm:max-w-2xl p-0 bg-white dark:bg-gray-950 border-l border-gray-200 dark:border-gray-800 overflow-y-auto">
+                {/* Hidden accessibility elements */}
+                <SheetTitle className="sr-only">Car Details</SheetTitle>
+                <SheetDescription className="sr-only">
+                  Complete vehicle information
+                </SheetDescription>
 
-    {/* Sticky Header */}
-    <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <CarIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Vehicle Details</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">ID: {viewCar?._id?.slice(-8)}</p>
-          </div>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setViewDrawerOpen(false)}
-          className="h-8 w-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
-        >
-          <IconX className="h-4 w-4" />
-        </Button>
-      </div>
-    </div>
-
-    {viewLoading ? (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <IconRefresh className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">Loading details...</p>
-        </div>
-      </div>
-    ) : viewCar ? (
-      <div className="p-6 space-y-8">
-        {/* Quick Info Bar */}
-        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-          <div className="flex items-center gap-4">
-            <div className="relative h-16 w-16 flex-shrink-0">
-              {viewCar.primaryImage?.url ? (
-                <Image
-                  src={viewCar.primaryImage.url}
-                  alt={viewCar.primaryImage.alt || viewCar.title}
-                  fill
-                  className="object-cover rounded-md border border-gray-200 dark:border-gray-700"
-                  sizes="64px"
-                />
-              ) : (
-                <div className="h-full w-full bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 flex items-center justify-center">
-                  <CarIcon className="h-6 w-6 text-gray-400" />
+                {/* Sticky Header */}
+                <div className="sticky top-0 z-10 bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-6 py-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                        <CarIcon className="h-5 w-5 text-gray-700 dark:text-gray-300" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                          Vehicle Details
+                        </h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          ID: {viewCar?._id?.slice(-8)}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setViewDrawerOpen(false)}
+                      className="h-8 w-8 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+                    >
+                      <IconX className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </div>
-            <div>
-              <h3 className="font-medium text-gray-900 dark:text-gray-100">{viewCar.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{viewCar.brand} • {viewCar.carModel} • {viewCar.year}</p>
-              <div className="flex items-center gap-2 mt-1">
-                {getStatusBadge(viewCar.status)}
-                {viewCar.isFeatured && (
-                  <Badge variant="outline" className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700">
-                    <Star className="h-3 w-3 mr-1" />
-                    Featured
-                  </Badge>
+
+                {viewLoading ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <IconRefresh className="h-8 w-8 animate-spin text-gray-400 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Loading details...
+                      </p>
+                    </div>
+                  </div>
+                ) : viewCar ? (
+                  <div className="p-6 space-y-8">
+                    {/* Quick Info Bar */}
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                      <div className="flex items-center gap-4">
+                        <div className="relative h-16 w-16 flex-shrink-0">
+                          {viewCar.primaryImage?.url ? (
+                            <Image
+                              src={viewCar.primaryImage.url}
+                              alt={viewCar.primaryImage.alt || viewCar.title}
+                              fill
+                              className="object-cover rounded-md border border-gray-200 dark:border-gray-700"
+                              sizes="64px"
+                            />
+                          ) : (
+                            <div className="h-full w-full bg-gray-100 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 flex items-center justify-center">
+                              <CarIcon className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                            {viewCar.title}
+                          </h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                            {viewCar.brand} • {viewCar.carModel} •{" "}
+                            {viewCar.year}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            {getStatusBadge(viewCar.status)}
+                            {viewCar.isFeatured && (
+                              <Badge
+                                variant="outline"
+                                className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-700"
+                              >
+                                <Star className="h-3 w-3 mr-1" />
+                                Featured
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                          {formatPrice(viewCar.salePrice)}
+                        </div>
+                        {viewCar.discountPercentage &&
+                          viewCar.discountPercentage > 0 && (
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <span className="text-xs text-gray-500 line-through">
+                                {formatPrice(viewCar.regularPrice)}
+                              </span>
+                              <span className="text-xs text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded">
+                                {viewCar.discountPercentage}% OFF
+                              </span>
+                            </div>
+                          )}
+                      </div>
+                    </div>
+
+                    {/* Image Gallery */}
+                    <div className="space-y-3">
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                        <span>Gallery</span>
+                        <span className="text-gray-400">
+                          {viewCar.images?.length || 0} images
+                        </span>
+                      </label>
+
+                      {/* Primary Image Highlight */}
+                      {viewCar.primaryImage?.url && (
+                        <div className="relative h-48 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group">
+                          <Image
+                            src={viewCar.primaryImage.url}
+                            alt={viewCar.primaryImage.alt || "Primary image"}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 768px) 100vw, 600px"
+                          />
+                          <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            Primary Image
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Additional Images Grid */}
+                      {viewCar.images && viewCar.images.length > 0 && (
+                        <div className="grid grid-cols-4 gap-2">
+                          {viewCar.images.map((image, index) => (
+                            <div
+                              key={index}
+                              className="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-800 group"
+                            >
+                              <Image
+                                src={image.url}
+                                alt={image.alt || `Image ${index + 1}`}
+                                fill
+                                className="object-cover"
+                                sizes="(max-width: 768px) 25vw, 150px"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Key Specifications - 4 Column Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                        <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {viewCar.year}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Year
+                        </div>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                        <Fuel className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                          {viewCar.fuelType}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Fuel Type
+                        </div>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                        <Gauge className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {viewCar.km.toLocaleString()} km
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Odometer
+                        </div>
+                      </div>
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                        <Cog className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                          {viewCar.transmission}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          Transmission
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Basic Information - 2 Column Grid */}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                        Basic Information
+                      </label>
+                      <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Brand
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.brand}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Model
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.carModel}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Variant
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.variant || "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Body Type
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">
+                            {viewCar.bodyType}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Color
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.color}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Seats
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.seats} Seats
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Ownership
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.ownership} Owner(s)
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Drive Type
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">
+                            {viewCar.driveType}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Pricing Details */}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                        Pricing Details
+                      </label>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Regular Price
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+                            {formatPrice(viewCar.regularPrice)}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Sale Price
+                          </div>
+                          <div className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-1">
+                            {formatPrice(viewCar.salePrice)}
+                          </div>
+                        </div>
+                        <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            On Road Price
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">
+                            {formatPrice(viewCar.onRoadPrice)}
+                          </div>
+                        </div>
+                      </div>
+                      {viewCar.emiStartingFrom && (
+                        <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                          EMI from {formatPrice(viewCar.emiStartingFrom)}/month
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Technical Specifications */}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                        Technical Specifications
+                      </label>
+                      <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                        {viewCar.engine && (
+                          <div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Engine
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                              {viewCar.engine}
+                            </div>
+                          </div>
+                        )}
+                        {viewCar.mileage && (
+                          <div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              Mileage
+                            </div>
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                              {viewCar.mileage}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Location & Registration */}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                        Location & Registration
+                      </label>
+                      <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Registration City
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.registrationCity || "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Registration State
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">
+                            {viewCar.registrationState || "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Insurance
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">
+                            {viewCar.insurance?.toLowerCase() || "N/A"}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">
+                            Seller Type
+                          </div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">
+                            {viewCar.sellerType?.toLowerCase() || "N/A"}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Features - Improved with better spacing and organization */}
+                    {viewCar.features && viewCar.features.length > 0 && (
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                            Features
+                          </label>
+                          <Badge
+                            variant="outline"
+                            className="text-xs bg-gray-100 dark:bg-gray-800"
+                          >
+                            {viewCar.features.length} items
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {viewCar.features.map((feature, index) => (
+                            <div
+                              key={index}
+                              className={cn(
+                                "flex items-center gap-2 p-2 rounded-md border text-sm",
+                                feature.available
+                                  ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+                                  : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60",
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
+                                  feature.available
+                                    ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                                    : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
+                                )}
+                              >
+                                {feature.available ? (
+                                  <IconCheck className="h-3 w-3" />
+                                ) : (
+                                  <IconX className="h-3 w-3" />
+                                )}
+                              </div>
+                              <span
+                                className={cn(
+                                  "text-sm",
+                                  feature.available
+                                    ? "text-gray-900 dark:text-gray-100 font-medium"
+                                    : "text-gray-500 dark:text-gray-400",
+                                )}
+                              >
+                                {feature.name}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Specifications - Improved with better spacing and organization */}
+                    {viewCar.specifications &&
+                      viewCar.specifications.length > 0 && (
+                        <div>
+                          <div className="flex items-center justify-between mb-4">
+                            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                              Specifications
+                            </label>
+                            <Badge
+                              variant="outline"
+                              className="text-xs bg-gray-100 dark:bg-gray-800"
+                            >
+                              {viewCar.specifications.length} items
+                            </Badge>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {viewCar.specifications.map((spec, index) => (
+                              <div
+                                key={index}
+                                className={cn(
+                                  "flex items-center gap-2 p-2 rounded-md border text-sm",
+                                  spec.available
+                                    ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+                                    : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60",
+                                )}
+                              >
+                                <div
+                                  className={cn(
+                                    "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
+                                    spec.available
+                                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400",
+                                  )}
+                                >
+                                  {spec.available ? (
+                                    <IconCheck className="h-3 w-3" />
+                                  ) : (
+                                    <IconX className="h-3 w-3" />
+                                  )}
+                                </div>
+                                <span
+                                  className={cn(
+                                    "text-sm",
+                                    spec.available
+                                      ? "text-gray-900 dark:text-gray-100 font-medium"
+                                      : "text-gray-500 dark:text-gray-400",
+                                  )}
+                                >
+                                  {spec.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                    {/* Description */}
+                    {viewCar.description && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">
+                          Description
+                        </label>
+                        <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                            {viewCar.description}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metadata Footer */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-4 border-t border-gray-200 dark:border-gray-800 text-xs">
+                      <div className="space-y-1">
+                        <div className="text-gray-500 dark:text-gray-400">
+                          Created:{" "}
+                          {new Date(viewCar.createdAt).toLocaleString()}
+                        </div>
+                        <div className="text-gray-500 dark:text-gray-400">
+                          Updated:{" "}
+                          {new Date(viewCar.updatedAt).toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="text-gray-400 font-mono bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
+                        ID: {viewCar._id}
+                      </div>
+                    </div>
+
+                    {/* Footer Actions */}
+                    <div className="flex items-center justify-end gap-3 pt-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setViewDrawerOpen(false)}
+                        className="h-10 px-5 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                      >
+                        Close
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleOpenEdit(viewCar)}
+                        className="h-10 px-5 bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white"
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        Edit Vehicle
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-center">
+                      <CarIcon className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No car data available
+                      </p>
+                    </div>
+                  </div>
                 )}
-              </div>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{formatPrice(viewCar.salePrice)}</div>
-            {viewCar.discountPercentage && viewCar.discountPercentage > 0 && (
-              <div className="flex items-center justify-end gap-1 mt-1">
-                <span className="text-xs text-gray-500 line-through">{formatPrice(viewCar.regularPrice)}</span>
-                <span className="text-xs text-green-600 dark:text-green-400 font-medium bg-green-50 dark:bg-green-950/30 px-1.5 py-0.5 rounded">
-                  {viewCar.discountPercentage}% OFF
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Image Gallery */}
-        <div className="space-y-3">
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Gallery</span>
-            <span className="text-gray-400">{viewCar.images?.length || 0} images</span>
-          </label>
-          
-          {/* Primary Image Highlight */}
-          {viewCar.primaryImage?.url && (
-            <div className="relative h-48 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-800 group">
-              <Image
-                src={viewCar.primaryImage.url}
-                alt={viewCar.primaryImage.alt || "Primary image"}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 600px"
-              />
-              <div className="absolute bottom-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                Primary Image
-              </div>
-            </div>
-          )}
-          
-          {/* Additional Images Grid */}
-          {viewCar.images && viewCar.images.length > 0 && (
-            <div className="grid grid-cols-4 gap-2">
-              {viewCar.images.map((image, index) => (
-                <div key={index} className="relative aspect-square rounded-md overflow-hidden border border-gray-200 dark:border-gray-800 group">
-                  <Image
-                    src={image.url}
-                    alt={image.alt || `Image ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 25vw, 150px"
-                  />
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Key Specifications - 4 Column Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-            <Calendar className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{viewCar.year}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Year</div>
-          </div>
-          <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-            <Fuel className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{viewCar.fuelType}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Fuel Type</div>
-          </div>
-          <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-            <Gauge className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{viewCar.km.toLocaleString()} km</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Odometer</div>
-          </div>
-          <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-            <Cog className="h-4 w-4 text-gray-500 dark:text-gray-400 mb-1" />
-            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{viewCar.transmission}</div>
-            <div className="text-xs text-gray-500 dark:text-gray-400">Transmission</div>
-          </div>
-        </div>
-
-        {/* Basic Information - 2 Column Grid */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Basic Information</label>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Brand</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.brand}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Model</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.carModel}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Variant</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.variant || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Body Type</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">{viewCar.bodyType}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Color</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.color}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Seats</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.seats} Seats</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Ownership</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.ownership} Owner(s)</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Drive Type</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">{viewCar.driveType}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pricing Details */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Pricing Details</label>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-              <div className="text-xs text-gray-500 dark:text-gray-400">Regular Price</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{formatPrice(viewCar.regularPrice)}</div>
-            </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-              <div className="text-xs text-gray-500 dark:text-gray-400">Sale Price</div>
-              <div className="text-sm font-bold text-gray-900 dark:text-gray-100 mt-1">{formatPrice(viewCar.salePrice)}</div>
-            </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
-              <div className="text-xs text-gray-500 dark:text-gray-400">On Road Price</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-1">{formatPrice(viewCar.onRoadPrice)}</div>
-            </div>
-          </div>
-          {viewCar.emiStartingFrom && (
-            <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
-              EMI from {formatPrice(viewCar.emiStartingFrom)}/month
-            </div>
-          )}
-        </div>
-
-        {/* Technical Specifications */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Technical Specifications</label>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-            {viewCar.engine && (
-              <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Engine</div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.engine}</div>
-              </div>
-            )}
-            {viewCar.mileage && (
-              <div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Mileage</div>
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.mileage}</div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Location & Registration */}
-        <div>
-          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Location & Registration</label>
-          <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Registration City</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.registrationCity || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Registration State</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5">{viewCar.registrationState || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Insurance</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">{viewCar.insurance?.toLowerCase() || 'N/A'}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">Seller Type</div>
-              <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mt-0.5 capitalize">{viewCar.sellerType?.toLowerCase() || 'N/A'}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Features - Improved with better spacing and organization */}
-        {viewCar.features && viewCar.features.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Features
-              </label>
-              <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-800">
-                {viewCar.features.length} items
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {viewCar.features.map((feature, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded-md border text-sm",
-                    feature.available
-                      ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
-                      : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60"
-                  )}
-                >
-                  <div className={cn(
-                    "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
-                    feature.available
-                      ? "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                  )}>
-                    {feature.available ? (
-                      <IconCheck className="h-3 w-3" />
-                    ) : (
-                      <IconX className="h-3 w-3" />
-                    )}
-                  </div>
-                  <span className={cn(
-                    "text-sm",
-                    feature.available
-                      ? "text-gray-900 dark:text-gray-100 font-medium"
-                      : "text-gray-500 dark:text-gray-400"
-                  )}>
-                    {feature.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Specifications - Improved with better spacing and organization */}
-        {viewCar.specifications && viewCar.specifications.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                Specifications
-              </label>
-              <Badge variant="outline" className="text-xs bg-gray-100 dark:bg-gray-800">
-                {viewCar.specifications.length} items
-              </Badge>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {viewCar.specifications.map((spec, index) => (
-                <div
-                  key={index}
-                  className={cn(
-                    "flex items-center gap-2 p-2 rounded-md border text-sm",
-                    spec.available
-                      ? "bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
-                      : "bg-gray-50/50 dark:bg-gray-900/50 border-gray-200 dark:border-gray-800 opacity-60"
-                  )}
-                >
-                  <div className={cn(
-                    "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center",
-                    spec.available
-                      ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                      : "bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400"
-                  )}>
-                    {spec.available ? (
-                      <IconCheck className="h-3 w-3" />
-                    ) : (
-                      <IconX className="h-3 w-3" />
-                    )}
-                  </div>
-                  <span className={cn(
-                    "text-sm",
-                    spec.available
-                      ? "text-gray-900 dark:text-gray-100 font-medium"
-                      : "text-gray-500 dark:text-gray-400"
-                  )}>
-                    {spec.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        {viewCar.description && (
-          <div>
-            <label className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 block">Description</label>
-            <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg border border-gray-200 dark:border-gray-800">
-              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
-                {viewCar.description}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Metadata Footer */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-4 border-t border-gray-200 dark:border-gray-800 text-xs">
-          <div className="space-y-1">
-            <div className="text-gray-500 dark:text-gray-400">
-              Created: {new Date(viewCar.createdAt).toLocaleString()}
-            </div>
-            <div className="text-gray-500 dark:text-gray-400">
-              Updated: {new Date(viewCar.updatedAt).toLocaleString()}
-            </div>
-          </div>
-          <div className="text-gray-400 font-mono bg-gray-50 dark:bg-gray-900 px-2 py-1 rounded">
-            ID: {viewCar._id}
-          </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setViewDrawerOpen(false)}
-            className="h-10 px-5 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-          >
-            Close
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => handleOpenEdit(viewCar)}
-            className="h-10 px-5 bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:hover:bg-gray-200 dark:text-gray-900 text-white"
-          >
-            <Pencil className="h-4 w-4 mr-2" />
-            Edit Vehicle
-          </Button>
-        </div>
-      </div>
-    ) : (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <CarIcon className="h-12 w-12 text-gray-300 dark:text-gray-700 mx-auto mb-3" />
-          <p className="text-sm text-gray-500 dark:text-gray-400">No car data available</p>
-        </div>
-      </div>
-    )}
-  </SheetContent>
-</Sheet>
+              </SheetContent>
+            </Sheet>
           </div>
         </SidebarInset>
       </SidebarProvider>
