@@ -54,11 +54,8 @@ const data = {
     { title: "Testimonials", url: "/testimonials", icon: IconMessageCircle },
     { title: "Blogs", url: "/blog", icon: IconFileDescription },
     { title: "Newsletter", url: "/newsletter", icon: IconMail },
-    { title: "Lifecycle", url: "/lifecycle", icon: IconListDetails },
-    { title: "Analytics", url: "/analytics", icon: IconChartBar },
     { title: "Car Plates", url: "/car-plates", icon: IconId },
     { title: "Insurance & Finance", url: "/insurance-finance", icon: IconShield },
-    { title: "Projects", url: "/projects", icon: IconFolder },
     { title: "Team", url: "/team", icon: IconUsers },
   ],
   navSecondary: [

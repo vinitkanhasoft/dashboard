@@ -98,6 +98,12 @@ import {
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -180,15 +186,15 @@ function DraggableInsuranceRow({ row }: { row: Row<InsuranceCompany> }) {
       ref={setNodeRef}
       className={`
         relative z-0 transition-all duration-300 group
-        data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 data-[dragging=true]:shadow-xl
-        data-[state=selected]:bg-primary/5
-        hover:bg-muted/50
+        data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 data-[dragging=true]:shadow-xl data-[dragging=true]:scale-[1.02] data-[dragging=true]:bg-white dark:data-[dragging=true]:bg-gray-900
+        data-[state=selected]:bg-primary/5 dark:data-[state=selected]:bg-primary/10
+        hover:bg-linear-to-r hover:from-muted/50 hover:to-muted/30 dark:hover:from-muted/20 dark:hover:to-muted/10
         ${row.index % 2 === 0 ? "bg-white dark:bg-gray-900/50" : "bg-gray-50/30 dark:bg-gray-800/30"}
       `}
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id} className={cn('py-4', 'px-4')}>
+        <TableCell key={cell.id} className="py-3">
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </TableCell>
       ))}
@@ -208,15 +214,15 @@ function DraggableFinanceRow({ row }: { row: Row<FinanceOption> }) {
       ref={setNodeRef}
       className={`
         relative z-0 transition-all duration-300 group
-        data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 data-[dragging=true]:shadow-xl
-        data-[state=selected]:bg-primary/5
-        hover:bg-muted/50
+        data-[dragging=true]:z-10 data-[dragging=true]:opacity-80 data-[dragging=true]:shadow-xl data-[dragging=true]:scale-[1.02] data-[dragging=true]:bg-white dark:data-[dragging=true]:bg-gray-900
+        data-[state=selected]:bg-primary/5 dark:data-[state=selected]:bg-primary/10
+        hover:bg-linear-to-r hover:from-muted/50 hover:to-muted/30 dark:hover:from-muted/20 dark:hover:to-muted/10
         ${row.index % 2 === 0 ? "bg-white dark:bg-gray-900/50" : "bg-gray-50/30 dark:bg-gray-800/30"}
       `}
       style={{ transform: CSS.Transform.toString(transform), transition }}
     >
       {row.getVisibleCells().map((cell) => (
-        <TableCell key={cell.id} className={cn('py-4', 'px-4')}>
+        <TableCell key={cell.id} className="py-3">
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
         </TableCell>
       ))}
@@ -316,6 +322,8 @@ export default function InsuranceFinancePage() {
   const [insToDelete, setInsToDelete] = React.useState<InsuranceCompany | null>(null);
   const [deleteFinDialogOpen, setDeleteFinDialogOpen] = React.useState(false);
   const [finToDelete, setFinToDelete] = React.useState<FinanceOption | null>(null);
+  const [bulkDeleteInsDialogOpen, setBulkDeleteInsDialogOpen] = React.useState(false);
+  const [bulkDeleteFinDialogOpen, setBulkDeleteFinDialogOpen] = React.useState(false);
 
   // ─── View drawers ─────────────────────────────────────
   const [viewInsDrawerOpen, setViewInsDrawerOpen] = React.useState(false);
@@ -511,14 +519,19 @@ export default function InsuranceFinancePage() {
 
   const handleDeleteInsurance = async () => {
     if (!insToDelete) return;
-    const result = await dispatch(deleteInsuranceCompany(insToDelete._id));
-    if (deleteInsuranceCompany.fulfilled.match(result)) {
-      toast.success(`"${insToDelete.name}" deleted successfully`);
-    } else {
-      toast.error("Failed to delete insurance company");
-    }
-    setDeleteInsDialogOpen(false);
+    await dispatch(deleteInsuranceCompany(insToDelete._id));
     setInsToDelete(null);
+    setDeleteInsDialogOpen(false);
+    toast.success("Insurance company deleted");
+  };
+
+  const handleBulkDeleteInsurance = async () => {
+    const ids = Object.keys(insRowSelection);
+    if (ids.length === 0) return;
+    await Promise.all(ids.map((id) => dispatch(deleteInsuranceCompany(id))));
+    setInsRowSelection({});
+    setBulkDeleteInsDialogOpen(false);
+    toast.success(`${ids.length} insurance companies deleted`);
   };
 
   // ─── Finance Form Handlers ────────────────────────────
@@ -625,12 +638,21 @@ export default function InsuranceFinancePage() {
     if (!finToDelete) return;
     const result = await dispatch(deleteFinanceOption(finToDelete._id));
     if (deleteFinanceOption.fulfilled.match(result)) {
-      toast.success(`"${finToDelete.bankName}" deleted successfully`);
+      setFinToDelete(null);
+      setDeleteFinDialogOpen(false);
+      toast.success("Finance option deleted");
     } else {
-      toast.error("Failed to delete finance option");
+      toast.error(String(result.payload) || "Failed to delete finance option");
     }
-    setDeleteFinDialogOpen(false);
-    setFinToDelete(null);
+  };
+
+  const handleBulkDeleteFinance = async () => {
+    const ids = Object.keys(finRowSelection);
+    if (ids.length === 0) return;
+    await Promise.all(ids.map((id) => dispatch(deleteFinanceOption(id))));
+    setFinRowSelection({});
+    setBulkDeleteFinDialogOpen(false);
+    toast.success(`${ids.length} finance options deleted`);
   };
 
   // ─── DnD Handlers ────────────────────────────────────
@@ -822,7 +844,8 @@ export default function InsuranceFinancePage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className={cn('text-red-600', 'focus:text-red-600')}
+                  variant="destructive"
+                  className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
                   onClick={() => { setInsToDelete(company); setDeleteInsDialogOpen(true); }}
                 >
                   <Trash2 className={cn('mr-2', 'h-4', 'w-4')} /> Delete
@@ -972,7 +995,8 @@ export default function InsuranceFinancePage() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
-                  className={cn('text-red-600', 'focus:text-red-600')}
+                  variant="destructive"
+                  className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
                   onClick={() => { setFinToDelete(option); setDeleteFinDialogOpen(true); }}
                 >
                   <Trash2 className={cn('mr-2', 'h-4', 'w-4')} /> Delete
@@ -1070,81 +1094,107 @@ export default function InsuranceFinancePage() {
 
             {/* ─── Insurance Tab ─────────────────────────────── */}
             <TabsContent value="insurance" className={cn('space-y-4', 'mt-4', 'mb-6')}>
-              {/* Toolbar */}
-              <div className={cn('flex', 'flex-col', 'gap-3', 'sm:flex-row', 'sm:items-center', 'sm:justify-between')}>
-                <div className={cn('flex', 'items-center', 'gap-2', 'flex-1', 'max-w-sm')}>
-                  <div className={cn('relative', 'flex-1')}>
-                    <IconSearch className={cn('absolute', 'left-2.5', 'top-2.5', 'h-4', 'w-4', 'text-muted-foreground')} />
+              <TooltipProvider>
+                <div className="w-full flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative flex-1 max-w-md">
+                    <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search insurance companies..."
                       value={insGlobalFilter}
                       onChange={(e) => setInsGlobalFilter(e.target.value)}
-                      className={cn('pl-8', 'h-9')}
+                      className="h-9 pl-9 pr-4 w-full bg-muted/50 border-muted focus:bg-background transition-all duration-200"
                     />
                   </div>
                 </div>
-                <div className={cn('flex', 'items-center', 'gap-2')}>
-                  <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || loading || financeLoading}>
-                    {isRefreshing ? <IconLoader className={cn('h-4', 'w-4', 'animate-spin')} /> : <IconRefresh className={cn('h-4', 'w-4')} />}
-                    <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Refresh</span>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <IconLayoutColumns className={cn('h-4', 'w-4')} />
-                        <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Columns</span>
-                        <IconChevronDown className={cn('ml-1', 'h-3', 'w-3')} />
+                <div className="flex items-center gap-2 ml-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="icon"
+                        className="h-9 w-9 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
+                        onClick={openCreateInsDrawer}
+                      >
+                        <IconPlus className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      {insuranceTable.getAllColumns().filter((c) => c.getCanHide()).map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(v) => column.toggleVisibility(!!v)}
-                        >
-                          {column.id}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button variant="outline" size="sm" onClick={exportInsuranceCSV}>
-                    <IconDownload className={cn('h-4', 'w-4')} />
-                    <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Export</span>
-                  </Button>
-                  <Button size="sm" onClick={openCreateInsDrawer}>
-                    <IconPlus className={cn('h-4', 'w-4')} />
-                    <span className="ml-1.5">Add Insurance</span>
-                  </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Add Insurance Company</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing || loading || financeLoading}
+                      >
+                        <IconRefresh
+                          className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh data</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={exportInsuranceCSV}
+                      >
+                        <IconDownload className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Export CSV</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
               {/* Selected Actions */}
               {Object.keys(insRowSelection).length > 0 && (
-                <div className={cn('flex', 'items-center', 'gap-2', 'rounded-lg', 'border', 'bg-muted/50', 'px-3', 'py-2')}>
-                  <span className={cn('text-sm', 'text-muted-foreground')}>
-                    {Object.keys(insRowSelection).length} selected
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={async () => {
-                      const ids = Object.keys(insRowSelection);
-                      await Promise.all(ids.map((id) => dispatch(deleteInsuranceCompany(id))));
-                      setInsRowSelection({});
-                      toast.success(`${ids.length} insurance companies deleted`);
-                    }}
-                  >
-                    <Trash2 className={cn('h-3.5', 'w-3.5', 'mr-1')} />
-                    Delete Selected
-                  </Button>
+                <div className="flex items-center justify-between bg-primary/5 rounded-lg p-3 border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="default"
+                      className="bg-primary text-primary-foreground"
+                    >
+                      {Object.keys(insRowSelection).length} selected
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {Object.keys(insRowSelection).length} of {insuranceTable.getFilteredRowModel().rows.length} rows selected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => setBulkDeleteInsDialogOpen(true)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete ({Object.keys(insRowSelection).length})
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setInsRowSelection({})}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               )}
 
               {/* Insurance Table */}
               <div className={cn('w-full', 'flex', 'flex-col', 'gap-4')}>
-                <div className={cn('rounded-xl', 'border', 'bg-card', 'shadow-sm')}>
+                <div className={cn('rounded-xl', 'border', 'bg-card', 'shadow-lg')}>
                   {loading ? (
                     <div className={cn('p-6', 'space-y-3')}>
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -1161,11 +1211,11 @@ export default function InsuranceFinancePage() {
                     >
                       <div className="overflow-x-auto">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="bg-linear-to-r from-muted/80 to-muted/40">
                             {insuranceTable.getHeaderGroups().map((hg) => (
-                              <TableRow key={hg.id} className={cn('bg-muted/50', 'hover:bg-muted/50')}>
+                              <TableRow key={hg.id} className="hover:bg-transparent">
                                 {hg.headers.map((header) => (
-                                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
+                                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }} className="h-11 font-semibold text-foreground/80">
                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                   </TableHead>
                                 ))}
@@ -1201,122 +1251,165 @@ export default function InsuranceFinancePage() {
               </div>
 
               {/* Insurance Pagination */}
-              <div className={cn('flex', 'items-center', 'justify-between', 'px-1')}>
-                <div className={cn('text-sm', 'text-muted-foreground')}>
-                  {insuranceTable.getFilteredSelectedRowModel().rows.length} of{" "}
-                  {insuranceTable.getFilteredRowModel().rows.length} row(s) selected
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
+                <div className="text-sm text-muted-foreground">
+                  Total: <span className="font-medium text-foreground">{insuranceTable.getFilteredRowModel().rows.length}</span> items
+                  {insuranceTable.getFilteredSelectedRowModel().rows.length > 0 && (
+                    <span className="text-xs ml-2">
+                      ({insuranceTable.getFilteredSelectedRowModel().rows.length} selected)
+                    </span>
+                  )}
                 </div>
-                <div className={cn('flex', 'items-center', 'gap-4')}>
-                  <div className={cn('flex', 'items-center', 'gap-2')}>
-                    <span className={cn('text-sm', 'text-muted-foreground')}>Rows per page</span>
-                    <Select
-                      value={String(insPagination.pageSize)}
-                      onValueChange={(v) => setInsPagination((p) => ({ ...p, pageSize: Number(v), pageIndex: 0 }))}
-                    >
-                      <SelectTrigger className={cn('h-8', 'w-16')}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <span className={cn('text-sm', 'text-muted-foreground')}>
-                    Page {insuranceTable.getState().pagination.pageIndex + 1} of {insuranceTable.getPageCount()}
-                  </span>
-                  <div className={cn('flex', 'gap-1')}>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => insuranceTable.setPageIndex(0)} disabled={!insuranceTable.getCanPreviousPage()}>
-                      <IconChevronsLeft className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => insuranceTable.previousPage()} disabled={!insuranceTable.getCanPreviousPage()}>
-                      <IconChevronLeft className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => insuranceTable.nextPage()} disabled={!insuranceTable.getCanNextPage()}>
-                      <IconChevronRight className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => insuranceTable.setPageIndex(insuranceTable.getPageCount() - 1)} disabled={!insuranceTable.getCanNextPage()}>
-                      <IconChevronsRight className={cn('h-4', 'w-4')} />
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => insuranceTable.setPageIndex(0)}
+                    disabled={!insuranceTable.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">First page</span>
+                    <IconChevronsLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => insuranceTable.previousPage()}
+                    disabled={!insuranceTable.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">Previous page</span>
+                    <IconChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => insuranceTable.nextPage()}
+                    disabled={!insuranceTable.getCanNextPage()}
+                  >
+                    <span className="sr-only">Next page</span>
+                    <IconChevronRight className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => insuranceTable.setPageIndex(insuranceTable.getPageCount() - 1)}
+                    disabled={!insuranceTable.getCanNextPage()}
+                  >
+                    <span className="sr-only">Last page</span>
+                    <IconChevronsRight className="size-4" />
+                  </Button>
                 </div>
               </div>
+                </div>
+              </TooltipProvider>
             </TabsContent>
 
             {/* ─── Finance Tab ───────────────────────────────── */}
             <TabsContent value="finance" className={cn('space-y-4', 'mt-4', 'px-4', 'lg:px-6')}>
-              {/* Toolbar */}
-              <div className={cn('flex', 'flex-col', 'gap-3', 'sm:flex-row', 'sm:items-center', 'sm:justify-between')}>
-                <div className={cn('flex', 'items-center', 'gap-2', 'flex-1', 'max-w-sm')}>
-                  <div className={cn('relative', 'flex-1')}>
-                    <IconSearch className={cn('absolute', 'left-2.5', 'top-2.5', 'h-4', 'w-4', 'text-muted-foreground')} />
+              <TooltipProvider>
+                <div className="w-full flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 flex-1">
+                  <div className="relative flex-1 max-w-md">
+                    <IconSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       placeholder="Search finance options..."
                       value={finGlobalFilter}
                       onChange={(e) => setFinGlobalFilter(e.target.value)}
-                      className={cn('pl-8', 'h-9')}
+                      className="h-9 pl-9 pr-4 w-full bg-muted/50 border-muted focus:bg-background transition-all duration-200"
                     />
                   </div>
                 </div>
-                <div className={cn('flex', 'items-center', 'gap-2')}>
-                  <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing || loading || financeLoading}>
-                    {isRefreshing ? <IconLoader className={cn('h-4', 'w-4', 'animate-spin')} /> : <IconRefresh className={cn('h-4', 'w-4')} />}
-                    <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Refresh</span>
-                  </Button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <IconLayoutColumns className={cn('h-4', 'w-4')} />
-                        <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Columns</span>
-                        <IconChevronDown className={cn('ml-1', 'h-3', 'w-3')} />
+                <div className="flex items-center gap-2 ml-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="default"
+                        size="icon"
+                        className="h-9 w-9 bg-linear-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm"
+                        onClick={openCreateFinDrawer}
+                      >
+                        <IconPlus className="h-4 w-4" />
                       </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-44">
-                      {financeTable.getAllColumns().filter((c) => c.getCanHide()).map((column) => (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(v) => column.toggleVisibility(!!v)}
-                        >
-                          {column.id}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Button variant="outline" size="sm" onClick={exportFinanceCSV}>
-                    <IconDownload className={cn('h-4', 'w-4')} />
-                    <span className={cn('ml-1.5', 'hidden', 'sm:inline')}>Export</span>
-                  </Button>
-                  <Button size="sm" onClick={openCreateFinDrawer}>
-                    <IconPlus className={cn('h-4', 'w-4')} />
-                    <span className="ml-1.5">Add Finance</span>
-                  </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Add Finance Option</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={handleRefresh}
+                        disabled={isRefreshing || loading || financeLoading}
+                      >
+                        <IconRefresh
+                          className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+                        />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Refresh data</TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={exportFinanceCSV}
+                      >
+                        <IconDownload className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Export CSV</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
               {/* Selected Actions */}
               {Object.keys(finRowSelection).length > 0 && (
-                <div className={cn('flex', 'items-center', 'gap-2', 'rounded-lg', 'border', 'bg-muted/50', 'px-3', 'py-2')}>
-                  <span className={cn('text-sm', 'text-muted-foreground')}>
-                    {Object.keys(finRowSelection).length} selected
-                  </span>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={async () => {
-                      const ids = Object.keys(finRowSelection);
-                      await Promise.all(ids.map((id) => dispatch(deleteFinanceOption(id))));
-                      setFinRowSelection({});
-                      toast.success(`${ids.length} finance options deleted`);
-                    }}
-                  >
-                    <Trash2 className={cn('h-3.5', 'w-3.5', 'mr-1')} />
-                    Delete Selected
-                  </Button>
+                <div className="flex items-center justify-between bg-primary/5 rounded-lg p-3 border border-primary/20">
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="default"
+                      className="bg-primary text-primary-foreground"
+                    >
+                      {Object.keys(finRowSelection).length} selected
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      {Object.keys(finRowSelection).length} of {financeTable.getFilteredRowModel().rows.length} rows selected
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="bg-red-600 text-white hover:bg-red-700"
+                      onClick={() => setBulkDeleteFinDialogOpen(true)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      Delete ({Object.keys(finRowSelection).length})
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8"
+                      onClick={() => setFinRowSelection({})}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                 </div>
               )}
 
               {/* Finance Table */}
               <div className={cn('w-full', 'flex', 'flex-col', 'gap-4')}>
-                <div className={cn('rounded-xl', 'border', 'bg-card', 'shadow-sm')}>
+                <div className={cn('rounded-xl', 'border', 'bg-card', 'shadow-lg')}>
                   {financeLoading ? (
                     <div className={cn('p-6', 'space-y-3')}>
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -1333,11 +1426,11 @@ export default function InsuranceFinancePage() {
                     >
                       <div className="overflow-x-auto">
                         <Table>
-                          <TableHeader>
+                          <TableHeader className="bg-linear-to-r from-muted/80 to-muted/40">
                             {financeTable.getHeaderGroups().map((hg) => (
-                              <TableRow key={hg.id} className={cn('bg-muted/50', 'hover:bg-muted/50')}>
+                              <TableRow key={hg.id} className="hover:bg-transparent">
                                 {hg.headers.map((header) => (
-                                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }}>
+                                  <TableHead key={header.id} style={{ width: header.getSize() !== 150 ? header.getSize() : undefined }} className="h-11 font-semibold text-foreground/80">
                                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                                   </TableHead>
                                 ))}
@@ -1373,43 +1466,60 @@ export default function InsuranceFinancePage() {
               </div>
 
               {/* Finance Pagination */}
-              <div className={cn('flex', 'items-center', 'justify-between', 'px-1')}>
-                <div className={cn('text-sm', 'text-muted-foreground')}>
-                  {financeTable.getFilteredSelectedRowModel().rows.length} of{" "}
-                  {financeTable.getFilteredRowModel().rows.length} row(s) selected
+              <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
+                <div className="text-sm text-muted-foreground">
+                  Total: <span className="font-medium text-foreground">{financeTable.getFilteredRowModel().rows.length}</span> items
+                  {financeTable.getFilteredSelectedRowModel().rows.length > 0 && (
+                    <span className="text-xs ml-2">
+                      ({financeTable.getFilteredSelectedRowModel().rows.length} selected)
+                    </span>
+                  )}
                 </div>
-                <div className={cn('flex', 'items-center', 'gap-4')}>
-                  <div className={cn('flex', 'items-center', 'gap-2')}>
-                    <span className={cn('text-sm', 'text-muted-foreground')}>Rows per page</span>
-                    <Select
-                      value={String(finPagination.pageSize)}
-                      onValueChange={(v) => setFinPagination((p) => ({ ...p, pageSize: Number(v), pageIndex: 0 }))}
-                    >
-                      <SelectTrigger className={cn('h-8', 'w-16')}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {[10, 20, 50].map((n) => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <span className={cn('text-sm', 'text-muted-foreground')}>
-                    Page {financeTable.getState().pagination.pageIndex + 1} of {financeTable.getPageCount()}
-                  </span>
-                  <div className={cn('flex', 'gap-1')}>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => financeTable.setPageIndex(0)} disabled={!financeTable.getCanPreviousPage()}>
-                      <IconChevronsLeft className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => financeTable.previousPage()} disabled={!financeTable.getCanPreviousPage()}>
-                      <IconChevronLeft className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => financeTable.nextPage()} disabled={!financeTable.getCanNextPage()}>
-                      <IconChevronRight className={cn('h-4', 'w-4')} />
-                    </Button>
-                    <Button variant="outline" size="icon" className={cn('h-8', 'w-8')} onClick={() => financeTable.setPageIndex(financeTable.getPageCount() - 1)} disabled={!financeTable.getCanNextPage()}>
-                      <IconChevronsRight className={cn('h-4', 'w-4')} />
-                    </Button>
-                  </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => financeTable.setPageIndex(0)}
+                    disabled={!financeTable.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">First page</span>
+                    <IconChevronsLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => financeTable.previousPage()}
+                    disabled={!financeTable.getCanPreviousPage()}
+                  >
+                    <span className="sr-only">Previous page</span>
+                    <IconChevronLeft className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => financeTable.nextPage()}
+                    disabled={!financeTable.getCanNextPage()}
+                  >
+                    <span className="sr-only">Next page</span>
+                    <IconChevronRight className="size-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => financeTable.setPageIndex(financeTable.getPageCount() - 1)}
+                    disabled={!financeTable.getCanNextPage()}
+                  >
+                    <span className="sr-only">Last page</span>
+                    <IconChevronsRight className="size-4" />
+                  </Button>
                 </div>
               </div>
+                </div>
+              </TooltipProvider>
             </TabsContent>
           </Tabs>
         </div>
@@ -1848,7 +1958,7 @@ export default function InsuranceFinancePage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className={cn('bg-destructive', 'text-destructive-foreground', 'hover:bg-destructive/90')}
+                className="bg-red-600 text-white hover:bg-red-700"
                 onClick={handleDeleteInsurance}
                 disabled={deleting}
               >
@@ -1871,11 +1981,61 @@ export default function InsuranceFinancePage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                className={cn('bg-destructive', 'text-destructive-foreground', 'hover:bg-destructive/90')}
+                className="bg-red-600 text-white hover:bg-red-700"
                 onClick={handleDeleteFinance}
                 disabled={deleting}
               >
                 {deleting ? <IconLoader className={cn('mr-2', 'h-4', 'w-4', 'animate-spin')} /> : <Trash2 className={cn('mr-2', 'h-4', 'w-4')} />}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* ─── Bulk Delete Insurance Dialog ────────────────── */}
+        <AlertDialog open={bulkDeleteInsDialogOpen} onOpenChange={setBulkDeleteInsDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Delete {Object.keys(insRowSelection).length} insurance compan{Object.keys(insRowSelection).length === 1 ? 'y' : 'ies'}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected {Object.keys(insRowSelection).length} insurance compan{Object.keys(insRowSelection).length === 1 ? 'y' : 'ies'} and remove them from the server.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={handleBulkDeleteInsurance}
+                disabled={deleting}
+              >
+                {deleting ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* ─── Bulk Delete Finance Dialog ───────────────────── */}
+        <AlertDialog open={bulkDeleteFinDialogOpen} onOpenChange={setBulkDeleteFinDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Delete {Object.keys(finRowSelection).length} finance option{Object.keys(finRowSelection).length === 1 ? '' : 's'}?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete the selected {Object.keys(finRowSelection).length} finance option{Object.keys(finRowSelection).length === 1 ? '' : 's'} and remove them from the server.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-600 text-white hover:bg-red-700"
+                onClick={handleBulkDeleteFinance}
+                disabled={deleting}
+              >
+                {deleting ? <IconLoader className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
