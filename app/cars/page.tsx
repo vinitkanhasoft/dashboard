@@ -206,8 +206,7 @@ function DraggableRow({ row }: { row: Row<Car> }) {
 }
 
 // ─── Stats Cards ──────────────────────────────────────────
-function CarCards() {
-  const { counts } = useAppSelector((s) => s.car);
+function CarCards({ counts }: { counts?: { total: number; available: number; sold: number; reserved: number } }) {
 
   return (
     <div className={cn("grid", "gap-4", "sm:grid-cols-2", "lg:grid-cols-4")}>
@@ -374,6 +373,7 @@ export default function CarsPage() {
   const router = useRouter();
   const carState = useAppSelector((s) => s.car);
   const { cars, loading, error, pagination: apiPagination, counts } = carState;
+  const [localCounts, setLocalCounts] = React.useState(counts || undefined);
   const hasFetched = React.useRef(false);
 
   // Table state
@@ -449,53 +449,64 @@ export default function CarsPage() {
     useSensor(KeyboardSensor, {}),
   );
 
-  // Search handler - calls the appropriate API based on active tab
+  // Unified data fetching function
+  const fetchData = React.useCallback(async (options?: {
+    page?: number;
+    status?: string;
+    query?: string;
+    resetPage?: boolean;
+  }) => {
+    const {
+      page = pagination.pageIndex + 1,
+      status = activeStatusTab,
+      query = globalFilter,
+      resetPage = false
+    } = options || {};
+
+    const actualPage = resetPage ? 1 : page;
+
+    if (query.trim()) {
+      // Search with text query
+      return dispatch(searchCars({
+        q: query,
+        page: actualPage,
+        limit: pagination.pageSize,
+        sortBy: "relevance",
+        sortOrder: "desc",
+      }));
+    } else if (status === "all") {
+      // Fetch all cars
+      return dispatch(fetchCars({
+        page: actualPage,
+        limit: pagination.pageSize,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      }));
+    } else {
+      // Filter by status
+      return dispatch(searchCarsByStatus({
+        status,
+        page: actualPage,
+        limit: pagination.pageSize,
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      }));
+    }
+  }, [dispatch, pagination.pageIndex, pagination.pageSize, activeStatusTab, globalFilter]);
+
+  // Search handler - debounced
   const searchTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const handleSearch = React.useCallback(
     (q: string) => {
       setGlobalFilter(q);
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
       searchTimeoutRef.current = setTimeout(() => {
-        if (q.trim()) {
-          // Use general search for text queries
-          dispatch(
-            searchCars({
-              q,
-              page: 1,
-              limit: pagination.pageSize,
-              sortBy: "relevance",
-              sortOrder: "desc",
-            }),
-          );
-          // Switch to "all" tab when searching
-          setActiveStatusTab("all");
-        } else {
-          // Use status-specific API when no search query
-          if (activeStatusTab === "all") {
-            // If we're on "all" tab, the useEffect will handle showing existing data
-            // No need to manually set data here
-          } else {
-            // If we're on a status tab, refresh that status
-            dispatch(
-              searchCarsByStatus({
-                status: activeStatusTab,
-                page: 1,
-                limit: pagination.pageSize,
-                sortBy: "createdAt",
-                sortOrder: "desc",
-              }),
-            );
-          }
-        }
+        setActiveStatusTab("all"); // Switch to "all" tab when searching
+        setPagination(prev => ({ ...prev, pageIndex: 0 })); // Reset to first page
+        fetchData({ query: q, resetPage: true });
       }, 400);
     },
-    [
-      dispatch,
-      pagination.pageIndex,
-      pagination.pageSize,
-      activeStatusTab,
-      cars,
-    ],
+    [fetchData],
   );
 
   // Handle status tab change
@@ -503,93 +514,25 @@ export default function CarsPage() {
     (status: string) => {
       setActiveStatusTab(status);
       setPagination((prev) => ({ ...prev, pageIndex: 0 })); // Reset to first page
-
-      // Only call status API if not "all" and we have counts data
-      if (status !== "all" && counts) {
-        dispatch(
-          searchCarsByStatus({
-            status,
-            page: 1,
-            limit: pagination.pageSize,
-            sortBy: "createdAt",
-            sortOrder: "desc",
-          }),
-        );
-      }
-      // For "all" tab, the useEffect will handle showing all cars
+      fetchData({ status, resetPage: true });
     },
-    [dispatch, pagination.pageSize, counts],
+    [fetchData],
   );
 
   // Handle pagination changes
   React.useEffect(() => {
-    if (!globalFilter && hasFetched.current) {
-      if (activeStatusTab === "all") {
-        dispatch(
-          fetchCars({
-            page: pagination.pageIndex + 1,
-            limit: pagination.pageSize,
-            sortBy: "createdAt",
-            sortOrder: "desc",
-          }),
-        );
-      } else {
-        dispatch(
-          searchCarsByStatus({
-            status: activeStatusTab,
-            page: pagination.pageIndex + 1,
-            limit: pagination.pageSize,
-            sortBy: "createdAt",
-            sortOrder: "desc",
-          }),
-        );
-      }
+    if (hasFetched.current && !globalFilter) {
+      fetchData();
     }
-  }, [
-    pagination.pageIndex,
-    pagination.pageSize,
-    dispatch,
-    globalFilter,
-    activeStatusTab,
-  ]);
+  }, [pagination.pageIndex, fetchData, globalFilter]);
 
-  // Initial data fetch and refetch on page focus/visibility
+  // Initial data fetch
   React.useEffect(() => {
-    // Always fetch data when component mounts
     if (!hasFetched.current) {
       hasFetched.current = true;
-      dispatch(
-        fetchCars({
-          page: 1,
-          limit: pagination.pageSize,
-          sortBy: "createdAt",
-          sortOrder: "desc",
-        }),
-      );
+      fetchData({ resetPage: true });
     }
-
-    // Handle visibility change for navigation back scenarios
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible" && !hasFetched.current) {
-        hasFetched.current = true;
-        dispatch(
-          fetchCars({
-            page: 1,
-            limit: pagination.pageSize,
-            sortBy: "createdAt",
-            sortOrder: "desc",
-          }),
-        );
-      }
-    };
-
-    // Add visibility change listener
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [dispatch, pagination.pageSize]);
+  }, [fetchData]);
 
   // Handle tab changes after initial data is loaded and sync data with table
   React.useEffect(() => {
@@ -618,6 +561,11 @@ export default function CarsPage() {
   React.useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Sync local counts with Redux counts
+  React.useEffect(() => {
+    setLocalCounts(counts || undefined);
+  }, [counts]);
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
     () => data?.filter(Boolean).map(({ _id }) => _id) || [],
@@ -880,38 +828,41 @@ export default function CarsPage() {
               setIsEditing(false);
               toast.success(`Car status updated to ${newStatus}`);
 
-              // Refetch data to ensure consistency
-              if (globalFilter) {
-                // If there's an active search, refresh search results
-                dispatch(
-                  searchCars({
-                    q: globalFilter,
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "relevance",
-                    sortOrder: "desc",
-                  }),
-                );
-              } else if (activeStatusTab === "all") {
-                // Refresh all cars
-                dispatch(
-                  fetchCars({
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "createdAt",
-                    sortOrder: "desc",
-                  }),
-                );
-              } else {
-                // Refresh status-specific cars
-                dispatch(
-                  searchCarsByStatus({
-                    status: activeStatusTab,
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "createdAt",
-                    sortOrder: "desc",
-                  }),
+              // Update local data to preserve pagination state
+              setData((prevData) =>
+                prevData.map((car) =>
+                  car._id === row.original._id
+                    ? { ...car, status: newStatus }
+                    : car
+                )
+              );
+
+              // Update local counts to reflect status change
+              if (localCounts) {
+                const oldStatus = row.original.status;
+                setLocalCounts((prev) => {
+                  if (!prev) return prev;
+                  const newCounts = { ...prev };
+                  
+                  // Decrement old status count
+                  if (oldStatus === CarStatus.AVAILABLE) newCounts.available--;
+                  else if (oldStatus === CarStatus.SOLD) newCounts.sold--;
+                  else if (oldStatus === CarStatus.RESERVED) newCounts.reserved--;
+                  
+                  // Increment new status count
+                  if (newStatus === CarStatus.AVAILABLE) newCounts.available++;
+                  else if (newStatus === CarStatus.SOLD) newCounts.sold++;
+                  else if (newStatus === CarStatus.RESERVED) newCounts.reserved++;
+                  
+                  return newCounts;
+                });
+              }
+
+              // Only refresh data if the car should no longer be visible in current tab
+              if (activeStatusTab !== "all" && activeStatusTab !== newStatus) {
+                // Car moved to a different status tab, remove from current view
+                setData((prevData) => 
+                  prevData.filter((car) => car._id !== row.original._id)
                 );
               }
             } else {
@@ -975,41 +926,14 @@ export default function CarsPage() {
             setToggling(false);
             if (updateCar.fulfilled.match(result)) {
               toast.success(`Car ${newVal ? "featured" : "unfeatured"}`);
-
-              // Refetch data to ensure consistency
-              if (globalFilter) {
-                // If there's an active search, refresh search results
-                dispatch(
-                  searchCars({
-                    q: globalFilter,
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "relevance",
-                    sortOrder: "desc",
-                  }),
-                );
-              } else if (activeStatusTab === "all") {
-                // Refresh all cars
-                dispatch(
-                  fetchCars({
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "createdAt",
-                    sortOrder: "desc",
-                  }),
-                );
-              } else {
-                // Refresh status-specific cars
-                dispatch(
-                  searchCarsByStatus({
-                    status: activeStatusTab,
-                    page: pagination.pageIndex + 1,
-                    limit: pagination.pageSize,
-                    sortBy: "createdAt",
-                    sortOrder: "desc",
-                  }),
-                );
-              }
+              // Update local data to preserve pagination state
+              setData((prevData) =>
+                prevData.map((car) =>
+                  car._id === row.original._id
+                    ? { ...car, isFeatured: newVal }
+                    : car
+                )
+              );
             } else {
               setData((prev) =>
                 prev.map((c) =>
@@ -1160,7 +1084,7 @@ export default function CarsPage() {
     setDeleting(true);
     const result = await dispatch(deleteCar(carToDelete._id));
     if (deleteCar.fulfilled.match(result)) {
-      toast.success("Car deleted successfully");
+      toast.success("Car Remove successfully");
       setDeleteDialogOpen(false);
       setCarToDelete(null);
     } else {
@@ -1202,16 +1126,14 @@ export default function CarsPage() {
     [router],
   );
 
+  // Targeted refresh that preserves current page and filters
+  const handleTargetedRefresh = React.useCallback(async () => {
+    await fetchData(); // This uses current page, status, and filters
+  }, [fetchData]);
+
   const handleRefresh = async () => {
     setIsRefreshing(true);
-    await dispatch(
-      fetchCars({
-        page: 1,
-        limit: pagination.pageSize,
-        sortBy: "createdAt",
-        sortOrder: "desc",
-      }),
-    );
+    await fetchData({ resetPage: false });
     setIsRefreshing(false);
     toast.success("Cars refreshed successfully");
   };
@@ -1313,7 +1235,7 @@ export default function CarsPage() {
             >
               {/* Stats Cards */}
               <div className={cn("px-4", "lg:px-6")}>
-                <CarCards />
+                <CarCards counts={localCounts} />
               </div>
 
               {/* Status Tabs */}
@@ -1374,7 +1296,7 @@ export default function CarsPage() {
                             : "bg-gray-300 text-gray-700",
                         )}
                       >
-                        {counts?.total || 0}
+                        {localCounts?.total || 0}
                       </span>
                     </div>
                   </button>
@@ -1425,7 +1347,7 @@ export default function CarsPage() {
                             : "bg-gray-300 text-gray-700",
                         )}
                       >
-                        {counts?.available || 0}
+                        {localCounts?.available || 0}
                       </span>
                     </div>
                   </button>
@@ -1476,7 +1398,7 @@ export default function CarsPage() {
                             : "bg-gray-300 text-gray-700",
                         )}
                       >
-                        {counts?.sold || 0}
+                        {localCounts?.sold || 0}
                       </span>
                     </div>
                   </button>
@@ -1527,7 +1449,7 @@ export default function CarsPage() {
                             : "bg-gray-300 text-gray-700",
                         )}
                       >
-                        {counts?.reserved || 0}
+                        {localCounts?.reserved || 0}
                       </span>
                     </div>
                   </button>
